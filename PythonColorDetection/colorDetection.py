@@ -15,6 +15,22 @@ upper=np.array([138,255,255])
 
 video = cv2.VideoCapture(0)
 
+if video.isOpened(): 
+ 
+    
+    width  = int(video.get(3))  # float `width`
+    height = int(video.get(4))  # float `height`
+
+    pointGrid=[]
+
+    for i in range(0,width,100):
+        for j in range(0,height,100):
+            pointGrid.append([i,j])
+    # print(pointGrid)
+
+
+    
+
 while True:
     success,img = video.read()
     image = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
@@ -23,12 +39,14 @@ while True:
 
 
     # draw points 
-    #print(img.shape[0]/2,img.shape[1]/2) width - height 
 
-    # Turn this into a list!!!!! make it faster 
-    for i in range(0,int(img.shape[1]),100):
-        for j in range(0,int(img.shape[0]),100):
-            cv2.circle(image, (i,j), 20, (255,0,0), 2)
+    for i in pointGrid:
+        if(mask[i[1],i[0]].sum()>0):
+            cv2.circle(img, (i[0],i[1]), 20, (0,0,255), 2)
+
+        
+
+
 
 
     prediction=model.predict(img, confidence=40, overlap=30).json()
@@ -63,7 +81,7 @@ while True:
             print("Nothing found")
 
 
-    cv2.imshow("points",image)
+    # cv2.imshow("points",image)
     cv2.imshow("maks",mask)
     cv2.imshow("webcam",img)
 
