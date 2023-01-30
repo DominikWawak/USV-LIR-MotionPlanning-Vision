@@ -6,7 +6,7 @@ from math import sqrt
 
 
 from roboflow import Roboflow
-rf = Roboflow(api_key=config.apiKey)
+rf = Roboflow(api_key=config.apiKeyPaper)
 project = rf.workspace().project("usvlirpaper")
 model = project.version(1).model
 
@@ -36,11 +36,12 @@ if video.isOpened():
 
 while True:
     success,img = video.read()
+    success,img2 = video.read()
     image = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
 
     mask = cv2.inRange(image,lower,upper)
 
-
+    
 
     # array for valid circle points
     valid_circles=[]
@@ -48,11 +49,7 @@ while True:
     endPoint=()
     # draw points 
 
-    for i in pointGrid:
-        if(mask[i[1],i[0]].sum()>0):
-            valid_circles.append((i[0],i[1]))
-            cv2.circle(img, (i[0],i[1]), 10, (0,0,255), 2)
-
+   
 
 
     prediction=model.predict(img, confidence=40, overlap=30).json()
@@ -92,11 +89,16 @@ while True:
 
         if(bounding_box):
             if(bounding_box['class']=="usv"):
-                startPoint=end_point
-            if(bounding_box['class']=="boat"):
-                endPoint=end_point
+                startPoint=start_point
+            if(bounding_box['class']=="person"):
+                endPoint=start_point
        
             
+    for i in pointGrid:
+        if(mask[i[1],i[0]].sum()>0):
+            valid_circles.append((i[0],i[1]))
+            cv2.circle(img2, (i[0],i[1]), 10, (0,0,255), 2)
+
 
     if(startPoint and endPoint):
     
@@ -135,7 +137,7 @@ while True:
 
             for i in range(len(shortest_path)):
                 if(i+1<len(shortest_path)):
-                    cv2.line(img, (shortest_path[i]), (shortest_path[i+1]), (0, 255, 0), thickness=3, lineType=8)
+                    cv2.line(img2, (shortest_path[i]), (shortest_path[i+1]), (0, 255, 0), thickness=3, lineType=8)
 
 
 
@@ -144,9 +146,10 @@ while True:
 
 
 
-    # cv2.imshow("points",image)
+    cv2.imshow("points",image)
     cv2.imshow("maks",mask)
     cv2.imshow("webcam",img)
+    cv2.imshow("webcamspots",img2)
 
     cv2.waitKey(1)
 
