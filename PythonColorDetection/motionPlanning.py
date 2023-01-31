@@ -132,6 +132,13 @@ while True:
             shortest_path = nx.dijkstra_path(G, startPoint, endPoint, weight='weight')
 
             print(shortest_path)
+
+            for i in range(len(shortest_path)):
+                if(i+1<len(shortest_path)):
+                    cv2.line(img, (shortest_path[i]), (shortest_path[i+1]), (0, 255, 0), thickness=3, lineType=8)
+
+
+
         except:
             print("no Path")
 
