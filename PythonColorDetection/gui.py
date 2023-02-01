@@ -1,9 +1,8 @@
 
 from tkinter import *
+from tkinter.filedialog import askopenfilename
 from PIL import Image, ImageTk
-
-
-
+import pafy
 import cv2
 import numpy as np
 import config
@@ -11,43 +10,60 @@ import networkx as nx
 from math import sqrt
 import time
 import threading
-
-
-
 from roboflow import Roboflow
-rf = Roboflow(api_key=config.apiKeyPaper)
-project = rf.workspace().project("usvlirpaper")
-model = project.version(1).model
 
 
-# color in hue saturation value format
-
-lower=np.array([90,150,20])
-upper=np.array([138,255,255])
 
 
-video = cv2.VideoCapture(0)
+def motion_recognitionThread(option,model):
 
-if video.isOpened(): 
- 
     
-    width  = int(video.get(3))  # float `width`
-    height = int(video.get(4))  # float `height`
-
-    pointGrid=[]
-
-    for i in range(0,width,50):
-        for j in range(0,height,50):
-            pointGrid.append([i,j])
-    # print(pointGrid)
-
+    if(model==1):
+        rf = Roboflow(api_key=config.apiKeyPaper)
+        project = rf.workspace().project("usvlirpaper")
+        model = project.version(1).model
+    elif(model==2):
+        rf = Roboflow(api_key=config.apiKeySM2)
+        project = rf.workspace().project("saveme2")
+        model = project.version(2).model
 
 
-def motion_recognitionThread():
+    if(option==1):
+        video = cv2.VideoCapture(0)
+    elif(option==2):
+        fn= askopenfilename()
+        print("user chose", fn)
+        video = cv2.VideoCapture(fn)
+    elif(option==3):
+        url = app.stream3Text.get()
+        video = pafy.new(url)
+        best = video.getbest(preftype="mp4")
+        video = cv2.VideoCapture(best.url)
+
+    # video = cv2.VideoCapture(0)
+    if video.isOpened(): 
+    
+        
+        width  = int(video.get(3))  # float `width`
+        height = int(video.get(4))  # float `height`
+
+        pointGrid=[]
+
+        for i in range(0,width,50):
+            for j in range(0,height,50):
+                pointGrid.append([i,j])
+        # print(pointGrid)
+
     while True:
+
+        
         success,img = video.read()
         success,img2 = video.read()
         image = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
+
+        
+        lower = np.array([app.LH,app.LS,app.LV])
+        upper = np.array([app.UH,app.US,app.UV])
 
         mask = cv2.inRange(image,lower,upper)
 
@@ -157,9 +173,18 @@ def motion_recognitionThread():
 
         cv2.waitKey(1)
 
+
 class App:
 
     bigImage=0
+    currentLH = 90
+    currentLS = 150
+    currentLV = 20
+    currentUH = 138
+    currentUS = 255
+    currentUV = 255
+
+
 
     def on_label_click1(event):
         App.bigImage=1
@@ -174,9 +199,45 @@ class App:
     def on_label_click3(event):
         App.bigImage=3
         print("Label3 clicked!")
+
+    def update_slider(self, name, val):
+        
+        print("{}: {}".format(name, val))
+        if name == "LH":
+            self.LH = int(val)
+        if name == "LS":
+            self.LS= int(val)
+        if name == "LV":
+            self.LV= int(val)
+        if name == "UH":
+            self.UH = int(val)
+        if name == "US":
+           self.US= int(val)
+        if name == "UV":
+           self.UV = int(val)
+        print(self.LH)
+    
+    def streamCameraClick(self):
+        t1=threading.Thread(target=motion_recognitionThread,args=[1,1])
+        t1.start()
+    def streamFileClick(self):
+        t1=threading.Thread(target=motion_recognitionThread,args=[2,2])
+        t1.start()
+
+    def streamUrlClick(self):
+        t1=threading.Thread(target=motion_recognitionThread,args=[3,2])
+        t1.start()
         
 
     def __init__(self, master):
+
+        self.LH=0
+        self.LS=0
+        self.LV=0
+        self.UH=0
+        self.US=0
+        self.UV=0
+
         self.master = master
         master.title("Video Stream")
 
@@ -189,14 +250,57 @@ class App:
         mainVideoWindow = Frame(master)
         mainVideoWindow.pack(pady=41)
 
+        slidersFrame = Frame(master)
+        slidersFrame.pack(side=LEFT,pady=15)
+
+        
+        # LH=90
+        # LS=150
+        # LV=20
+        # UH=138
+        # US=255
+        # UV=255
+
+        self.sliderLH = Scale(slidersFrame, from_=0, to=255, orient=VERTICAL,label="LH",command=lambda val: self.update_slider("LH", val))
+        self.sliderLH.pack(side=LEFT)
+        self.sliderLS = Scale(slidersFrame, from_=0, to=255, orient=VERTICAL,label="LS",command=lambda val: self.update_slider("LS", val))
+        self.sliderLS.pack(side=LEFT)
+        self.slidersLV= Scale(slidersFrame, from_=0, to=255, orient=VERTICAL,label="LV",command=lambda val: self.update_slider("LV", val))
+        self.slidersLV.pack(side=LEFT)
+        self.sliderUH = Scale(slidersFrame, from_=0, to=255, orient=VERTICAL,label="UH",command=lambda val: self.update_slider("UH", val))
+        self.sliderUH.pack(side=LEFT)
+        self.sliderUS = Scale(slidersFrame, from_=0, to=255, orient=VERTICAL,label="US",command=lambda val: self.update_slider("US", val))
+        self.sliderUS.pack(side=LEFT)
+        self.sliderUV = Scale(slidersFrame, from_=0, to=255, orient=VERTICAL,label="UV",command=lambda val: self.update_slider("UV", val))  
+        self.sliderUV.pack(side=LEFT)
+
+
+
+        self.sliderLH.set(90)
+        self.sliderLS.set(150)
+        self.slidersLV.set(20)
+        self.sliderUH.set(138)
+        self.sliderUS.set(255)
+        self.sliderUV.set(255)
+
+
+        self.console=Text(slidersFrame, height=100, width=300)
+        self.console.pack(side=RIGHT)
+
         self.stream1_button = Button(topButtonsFrame, text="Start Camera Stream")
         self.stream1_button.pack(side=LEFT)
+        self.stream1_button.bind("<Button-1>", App.streamCameraClick)
 
         self.stream2_button = Button(topButtonsFrame, text="Start Local file Stream")
         self.stream2_button.pack(side=LEFT)
+        self.stream2_button.bind("<Button-1>", App.streamFileClick)
+        
 
         self.stream3_button = Button(topButtonsFrame, text="Start Url Stream")
+        self.stream3Text = Entry(topButtonsFrame, text="Enter Url",)
+        self.stream3_button.bind("<Button-1>", App.streamUrlClick)
         self.stream3_button.pack(side=LEFT)
+        self.stream3Text.pack(side=LEFT)
 
 
         self.label1 = Label(rightFrame)
@@ -225,9 +329,6 @@ class App:
         frame2 = img2
         frame3 = img3
 
-        
-        print(App.bigImage)
-      
         if(App.bigImage==1):
             frame4 = img1
         elif(App.bigImage==2):
@@ -292,12 +393,10 @@ class App:
 root = Tk()
 root.geometry("1000x1000")
 app = App(root)
-t1 = threading.Thread(target=motion_recognitionThread, args=[])
-
-t1.start()
-
 root.mainloop()
     
+    
+
 
 
 

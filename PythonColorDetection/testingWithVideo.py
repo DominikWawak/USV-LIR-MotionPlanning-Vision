@@ -18,12 +18,12 @@ upper=np.array([138,255,255])
 
 
 # Youtube Video
-# url = "https://www.youtube.com/watch?v=OYiM7P2mogU&list=LL&index=6"
-# video = pafy.new(url)
-# best = video.getbest(preftype="mp4")
-# video = cv2.VideoCapture(best.url)
+url = "https://youtu.be/POjC72UomUE"
+video = pafy.new(url)
+best = video.getbest(preftype="mp4")
+video = cv2.VideoCapture(best.url)
 
-video = cv2.VideoCapture("res/people_water.mp4")
+# video = cv2.VideoCapture("res/people_water.mp4")
 
 
 if video.isOpened(): 
