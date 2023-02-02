@@ -155,7 +155,7 @@ came_from = {}
 
 # euclydiean distance
 def distance(point1, point2):
-    return ((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2) ** 0.5
+    return ((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2) ** 10.5
 
 def a_star(startPoint, endPoint, openList, closedList):
     while openList:
