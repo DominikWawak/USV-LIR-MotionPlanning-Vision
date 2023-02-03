@@ -198,7 +198,9 @@ Next I picked Dijstras algorithm to perform the search for the shortest path. Th
 
 The video below shows the path Planning in action.
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/dWNm99I6LBw?controls=0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+
+
+[![Path Planning video](https://img.youtube.com/vi/dWNm99I6LBw/0.jpg)](https://www.youtube.com/watch?v=dWNm99I6LBw)
 
 
 ##  Path Following:
