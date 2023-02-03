@@ -1,30 +1,31 @@
-# How I made this project...
-### I want to share the approach I took to building this project and how I combied att of these approaches and technologies.
+# USV LIR 2.0 Search and Rescue
+<img title="USV LIR 2.0" alt="USV LIR 2.0" src="res/logo2.png" width="400">  
+
+## Overview
+
+### This project aims to share the approach taken to build a system that combines various technologies and approaches. The final output is a real-time detection of objects in a filtered image and performing path planning for a drone boat.
 
 <br>
-<br>
 
-#### Step 1 Requirements:
+## Requirements
 
-I am using python 3.9.13 as the main development language here.
-The libraries I am using areas follows: 
+The project is developed using Python 3.9.13 and the following libraries:
 
 ```
-from tkinter import *
-from tkinter.filedialog import askopenfilename
-from PIL import Image, ImageTk
-import pafy
-import cv2
-import numpy as np
-import config
-import networkx as nx
-from math import sqrt
-import time
-import threading
-from roboflow import Roboflow
+tkinter
+tkinter.filedialog
+PIL
+pafy
+cv2
+numpy
+config
+networkx
+roboflow
+
 ```
 
 To install these run the command 
+
 ``` 
 pip install MODULENAME
 ```
@@ -32,21 +33,21 @@ pip install MODULENAME
 If you are running one of my files and you get a "module not found error" the usual fix would be to install the module with the above command.
 
 
-#### Step 1 Color Detection:
+## Color Detection:
 
-The way I went about doing color detection was using the mask function in open cv for python. It uses Hue Saturation and Value to determine a lower and upper limit and based on that filter out a specific color. The image below will help with determining these values.
+The color detection is achieved using the mask function in OpenCV. It uses Hue, Saturation, and Value to determine a lower and upper limit for filtering a specific color. The filtered image is then shown in black and white. The image below will help with determining these values.
 
-https://i.stack.imgur.com/gyuw4.png
 
+<img title="HSV chart" alt="HSV chart" src="https://i.stack.imgur.com/gyuw4.png">
 
 When running this file 1_colorDetection you should see two windows appear one being your webcam stream and the other being the filtered black and white mask.
 
 Below you can see my example, I am filtering for blue because I am targeting water color. 
 
-[IMAGE of colour filter]
+<img title="Color Detection" alt="Color Detection" src="res/colorDetec.png">
 
 
-#### Step 2 Drawing Points:
+## Drawing Points:
 
 To use motion planning in this project my idea is to divide the image into a grid of points and perform path planning. First the points need to be drawn. In the file 2_drawingPoints the following piece of code does this:
 
@@ -77,9 +78,10 @@ for i in pointGrid:
 ```
 
 The image below shows the points being drawn on the water.
-[IMAGE of points being drawn]
 
-#### Step 3 Object Detection:
+<img title="Points" alt="Points" src="res/pointsDrawn.png">
+
+## Object Detection:
 
 Thanks to a platform called Roboflow [LINK ] training object detection models has been made easy. Check out their platform that allows you to annotate images, train models and deploy them quick and easy. You can quickly test your model in browser and look at evaluations of your model. RoboFlow provides a python API that allows you to use their models in your own projects. That is what I am doing here. 
 
@@ -150,11 +152,12 @@ The aboe code will draw a rectangle around the object and write the name of the 
 
 The image below shows the bounding boxes being drawn around the objects detected.
 
-[IMAGE of bounding boxes being drawn]
+
+<img title="Objects" alt="Objects" src="res/objectRecognition.png">
 
 
 
-#### Step 4 Path Planning:
+## Path Planning:
 
 The following script 4_motionPlanning takes the above steps and combines them to create a path planning algorithm. It is not perfect but it does work. The networkx python library is used to create a graph taking in all the points on the water. the starting and the end points need to be added to the graph and connected The points are in a grid and are connected vertically, horizontally and diagonally to each other. The following code does this:
 
@@ -195,16 +198,14 @@ Next I picked Dijstras algorithm to perform the search for the shortest path. Th
 
 The video below shows the path Planning in action.
 
-[VIDEO of path planning in action]
-
-#### Step 5: Path Following:
+<iframe width="560" height="315" src="https://www.youtube.com/embed/dWNm99I6LBw?controls=0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
 
-
+##  Path Following:
 
 
 
-### gui.py
+## gui.py
 
 This is a helper python graphical user interface that will allow you to either use a webcam, local file or url to stream and process the images. It is a simple tkinter gui that allows you to select the options you want and then runs the code. 
 
