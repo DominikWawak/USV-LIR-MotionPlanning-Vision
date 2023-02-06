@@ -15,14 +15,20 @@ import math
 
 
 
-def motion_recognitionThread(option,model):
+def motion_recognitionThread(option,mode):
 
+    # key,projectName,version
+    # rf = Roboflow(key)
+    # project = rf.workspace().project(projectName)
+    # model = project.version(version).model
+
+    print(mode)
     
-    if(model==1):
+    if(mode=="paper"):
         rf = Roboflow(api_key=config.apiKeyPaper)
         project = rf.workspace().project("usvlirpaper")
         model = project.version(1).model
-    elif(model==2):
+    elif(mode=="realLife"):
         rf = Roboflow(api_key=config.apiKeySM2)
         project = rf.workspace().project("saveme2")
         model = project.version(2).model
@@ -66,7 +72,6 @@ def motion_recognitionThread(option,model):
 
     # 
     # Loop
-    # 
     # 
     while True:
 
@@ -151,30 +156,7 @@ def motion_recognitionThread(option,model):
             if(mask[i[1],i[0]].sum()==0):
                 valid_circles.append((i[0],i[1]))
                 cv2.circle(img2, (i[0],i[1]), 10, (0,0,255), 2)
-
-        
-
-        # get dimensions of point grid
-        # pts_width = int(math.ceil(width/50))
-        # pts_height = int(math.ceil(height/50))
-        # # check 
-        # print(len(pointGrid),pts_height*pts_width)
-
-        # for i in pointGrid:
-        #     if(mask[i[1],i[0]].sum()>0):
-        #         valid_circles.append((i[0],i[1]))
-        #         cv2.circle(img2, (i[0],i[1]), 10, (0,0,255), 2)
-
     
-                
-
-
-
-      
-    
-      
-
-        
 
 
         if(startPoint and endPoint):
@@ -245,12 +227,9 @@ def motion_recognitionThread(option,model):
 
         app.show_frame(mask,img,img2)
         
-        # cv2.imshow("points",image)
-        # cv2.imshow("maks",mask)
-        # cv2.imshow("webcam",img)
-        # cv2.imshow("webcamspots",img2)
-
+    
         cv2.waitKey(1)
+
 
 
 class App:
@@ -263,7 +242,7 @@ class App:
     currentUS = 255
     currentUV = 255
 
-
+    selectedModel=""
 
     def on_label_click1(event):
         App.bigImage=1
@@ -297,15 +276,22 @@ class App:
         print(self.LH)
     
     def streamCameraClick(self):
-        t1=threading.Thread(target=motion_recognitionThread,args=[1,1])
+        t1=threading.Thread(target=motion_recognitionThread,args=[1,app.selectedModel])
         t1.start()
     def streamFileClick(self):
-        t1=threading.Thread(target=motion_recognitionThread,args=[2,2])
+        t1=threading.Thread(target=motion_recognitionThread,args=[2,app.selectedModel])
         t1.start()
 
     def streamUrlClick(self):
-        t1=threading.Thread(target=motion_recognitionThread,args=[3,2])
+        t1=threading.Thread(target=motion_recognitionThread,args=[3,app.selectedModel])
         t1.start()
+
+    def selectRobo(self, selected_option):
+        print(f"Selected option: {selected_option}")
+        app.selectedModel=selected_option
+        # do something with selected_option here
+        
+        
         
 
     def __init__(self, master):
@@ -320,25 +306,23 @@ class App:
         self.master = master
         master.title("Video Stream")
 
+
         rightFrame=Frame(master)
         rightFrame.pack(side='right')
 
         topButtonsFrame = Frame(master)
-        topButtonsFrame.pack(side='top',pady=15)
-
-        mainVideoWindow = Frame(master)
-        mainVideoWindow.pack(pady=41)
+        topButtonsFrame.pack(side='top')
 
         slidersFrame = Frame(master)
-        slidersFrame.pack(side=LEFT,pady=15)
+        slidersFrame.pack(side="top")
 
-        
-        # LH=90
-        # LS=150
-        # LV=20
-        # UH=138
-        # US=255
-        # UV=255
+        mainVideoWindow = Frame(master)
+        mainVideoWindow.pack(side='left')
+
+        # sideWindow = Frame(master)
+        # sideWindow.pack(pady=10)
+
+
 
         self.sliderLH = Scale(slidersFrame, from_=0, to=255, orient=VERTICAL,label="LH",command=lambda val: self.update_slider("LH", val))
         self.sliderLH.pack(side=LEFT)
@@ -363,8 +347,8 @@ class App:
         self.sliderUV.set(255)
 
 
-        self.console=Text(slidersFrame, height=100, width=300)
-        self.console.pack(side=RIGHT)
+        # self.console=Text(slidersFrame, height=100, width=300)
+        # self.console.pack(side=RIGHT)
 
         self.stream1_button = Button(topButtonsFrame, text="Start Camera Stream")
         self.stream1_button.pack(side=LEFT)
@@ -380,6 +364,14 @@ class App:
         self.stream3_button.bind("<Button-1>", App.streamUrlClick)
         self.stream3_button.pack(side=LEFT)
         self.stream3Text.pack(side=LEFT)
+
+
+        options = ["paper", "realLife"]
+        selection=StringVar()
+        selection.set("paper")
+        self.selectRoboflow=OptionMenu(topButtonsFrame, selection, *options,command=lambda selected_option=selection.get(): self.selectRobo(selected_option))
+        self.selectRoboflow.pack(side=RIGHT)
+
 
 
         self.label1 = Label(rightFrame)
@@ -443,24 +435,17 @@ class App:
         self.label1.imgtk = imgtk1
         self.label1.configure(image=imgtk1)
         
-
         
         self.label2.imgtk = imgtk2
         self.label2.configure(image=imgtk2)
       
 
-      
         self.label3.imgtk = imgtk3
         self.label3.configure(image=imgtk3)
 
         self.label4.imgtk = imgtk4
         self.label4.configure(image=imgtk4)
     
-
-        # self.label.configure(image=imgtk)
-        # self.label.pack(side="right")
-        # sself.master.after(10, self.show_frame)
-
 
     def exit_program(self):
         
