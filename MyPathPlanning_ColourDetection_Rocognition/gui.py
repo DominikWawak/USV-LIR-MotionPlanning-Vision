@@ -49,6 +49,10 @@ def motion_recognitionThread(option,mode):
     width=0
     height=0
 
+    usv_width_cm=8 #cm
+    usv_width_pixels=0
+    pixels_per_cm=0
+
     # video = cv2.VideoCapture(0)
     if video.isOpened(): 
     
@@ -63,8 +67,13 @@ def motion_recognitionThread(option,mode):
                 pointGrid.append([i,j])
         # print(pointGrid)
     previous_shortest_path=[]
-    valid_circles_prev=[]
-    path_found=False
+    valid_circles_path_found=[]
+    point_drift=(0,0)
+    startPoint_prev=(-5000000,-500000)
+    endPoint_prev=(-5000000,-500000)
+    validPointCount=0
+    path_found=False 
+    shortest_path=[]
     G = nx.Graph()
 
 
@@ -80,12 +89,20 @@ def motion_recognitionThread(option,mode):
         success,img2 = video.read()
         image = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
 
+
+        # array for valid circle points
+        valid_circles=[]
+        
+        startPoint=()
+        endPoint=()
+
+
+        #****************************************************************************************************
+        #*************COLOR DETECTION_START************************************************************************
         
         lower = np.array([app.LH,app.LS,app.LV])
         upper = np.array([app.UH,app.US,app.UV])
 
-
-      
         mask = cv2.inRange(image,lower,upper)
         mask = cv2.bitwise_not(mask)
         contours, hierarchy = cv2.findContours(mask,cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -94,19 +111,34 @@ def motion_recognitionThread(option,mode):
         for cnt in contours:
             area=cv2.contourArea(cnt)
             if area>10000 and area<150000:
-                print(area)
+                #print(area)
                 x,y,w,h = cv2.boundingRect(cnt)
-                cv2.rectangle(mask, (x-40,y-40),(x+w+40,y+h+40), (255,255,255),-1)
+                cv2.rectangle(mask, (x-20,y-20),(x+w+20,y+h+20), (255,255,255),-1)
+
+        # drawing circles        
+        for i in pointGrid:
+            if(mask[i[1],i[0]].sum()==0):
+                valid_circles.append((i[0],i[1]))
+                cv2.circle(img2, (i[0],i[1]), 10, (0,0,255), 2)
+
+        # if(not path_found):
+        #     # drawing circles        
+        #     for i in pointGrid:
+        #         if(mask[i[1],i[0]].sum()==0):
+        #             valid_circles.append((i[0],i[1]))
+        #             cv2.circle(img2, (i[0],i[1]), 10, (0,0,255), 2)
+        # else:
+        #     for i in valid_circles_path_found:
+        #         cv2.circle(img2, (i[0],i[1]), 10, (0,0,255), 2)
+
+
+        #****************************************************************************************************
+        #*************COLOR DETECTION_END************************************************************************
             
 
 
-
-        # array for valid circle points
-        valid_circles=[]
-        
-        startPoint=()
-        endPoint=()
-        # draw points 
+        #****************************************************************************************************
+        #*************OBJECT RECOGNITION _ START************************************************************************
 
 
         prediction=model.predict(img, confidence=40, overlap=30).json()
@@ -135,94 +167,145 @@ def motion_recognitionThread(option,mode):
                 fontFace = cv2.FONT_HERSHEY_SIMPLEX, #text font
                 fontScale = 0.6,#font scale
                 color = (255, 255, 255),#text color in RGB
-                thickness=2#thickness/"weight" of text
-                
-
-                
-                    
-        )
+                thickness=2#thickness/"weight" of text       
+                )
             except:
                 pass
                 # print("Nothing found")
 
             if(bounding_box):
                 if(bounding_box['class']=="usv"):
-                    startPoint=end_point
-                if(bounding_box['class']=="person"):
-                    endPoint=start_point
-        
-                
-        for i in pointGrid:
-            if(mask[i[1],i[0]].sum()==0):
-                valid_circles.append((i[0],i[1]))
-                cv2.circle(img2, (i[0],i[1]), 10, (0,0,255), 2)
-    
-
-
-        if(startPoint and endPoint):
-        
-            valid_circles.append(startPoint)
-            valid_circles.append(endPoint)
-            # Create a graph object
-            print(len(valid_circles),len(valid_circles_prev))
-          
-            print(len(valid_circles),len(valid_circles_prev))
-            for point in valid_circles:
-                G.add_node(point)
-
-                # Add edges between nodes with weights as Euclidean distance
-                for i in range(len(valid_circles)):
-                    for j in range(i+1, len(valid_circles)):
+                    startPoint=(int(x1)+40, int(y1-bounding_box['height'] / 2))
+                    cv2.circle(img2, startPoint, 10, (0,255,0), -1)
+                    
                         
-                        x1, y1 = valid_circles[i]
-                        x2, y2 = valid_circles[j]
-                        # distance = sqrt((x1 - x2)**2 + (y1 - y2)**2)
-                        # G.add_edge(coordinate_points[i], coordinate_points[j], weight=distance)
-                        if (abs(x1-x2)<=75 or abs(x1-x2)==0) and (abs(y1-y2)<=75 or abs(y1-y2)==0):
-                            distance = sqrt((x1 - x2)**2 + (y1 - y2)**2)
-                            G.add_edge(valid_circles[i], valid_circles[j], weight=distance)
-
-        # elif(startPoint and endPoint and (path_found)):
-        #     valid_circles.append(startPoint)
-        #     valid_circles.append(endPoint)
-
-        #     for node in G.nodes():
-        #             if node not in shortest_path:
-        #                 G.remove_node(node)
+                if(bounding_box['class']=="boat"):
+                    endPoint=(int(x0)-40, int(y0+bounding_box['height'] / 2))
+                    cv2.circle(img2, endPoint, 10, (0,255,0), -1)
 
 
-                # Find the shortest path between start point and end point using Dijkstra's algorithm
-                # start = (25,125)
-                # end = (375,125)
-                # G.remove_edge(start, end)
-            try:
+        
+        #****************************************************************************************************
+        #*************OBJECT RECOGNITION _END************************************************************************
+
+
+
+
+
+ 
+
+        if(startPoint!=() and endPoint!=() and not path_found): # if both points are found -> crate the graph
+
+            if(abs(startPoint[0]-startPoint_prev[0])<=101 and abs(endPoint[0]-endPoint_prev[0])<=101):
+                validPointCount+=1
+                print("validPointCount",validPointCount)
+                if(validPointCount==4):
+                    point_drift=(startPoint[0]-startPoint_prev[0],startPoint[1]-startPoint_prev[1])
+                    valid_circles_path_found=valid_circles
+                    valid_circles.append(startPoint)
+                    valid_circles.append(endPoint)
+
+                    if(usv_width_pixels==0):
+                        usv_width_pixels=abs(start_point[0]-end_point[0])
+                        print("USV WIDTH IN PIXELS",usv_width_pixels)
+                        pixels_per_cm=usv_width_pixels/usv_width_cm
+                        print("PIXELS PER CM",pixels_per_cm)
                 
-                shortest_path = nx.dijkstra_path(G, startPoint, endPoint, weight='weight')
+
+                    # Create a graph object
+                    #print(len(valid_circles),len(valid_circles_prev))
                 
+                    #print(len(valid_circles),len(valid_circles_prev))
+                    for point in valid_circles:
+                        x, y = point
+                        if(x>= startPoint[0] and x<=endPoint[0]): # minimize the amount of points
+                            G.add_node(point)
 
-                print(shortest_path)
+                        # Add edges between nodes with weights as Euclidean distance
+                        for i in range(len(valid_circles)):
+                            for j in range(i+1, len(valid_circles)):
+                                
+                                x1, y1 = valid_circles[i]
+                                x2, y2 = valid_circles[j]
+                            
+                                #if (abs(x1-x2)<=73 or abs(x1-x2)==0) and (abs(y1-y2)<=73 or abs(y1-y2)==0):
+                                if (abs(x1-x2)<=50 or abs(x1-x2)==0) and (abs(y1-y2)<=50 or abs(y1-y2)==0):
+                                    distance = sqrt((x1 - x2)**2 + (y1 - y2)**2)
+                                    G.add_edge(valid_circles[i], valid_circles[j], weight=distance)
 
-                for i in range(len(shortest_path)):
-                    if(i+1<len(shortest_path)):
-                        cv2.line(img2, (shortest_path[i]), (shortest_path[i+1]), (0, 255, 0), thickness=3, lineType=8)
+                # elif(startPoint and endPoint and (path_found==3)):
+                #     valid_circles.append(startPoint)
+                #     valid_circles.append(endPoint)
 
+                #     print("Shortest path",shortest_path)
 
-                # Remove all nodes except the nodes in the shortest path
-                # if(previous_shortest_path==shortest_path):
                 #     for node in G.nodes():
-                #         if node not in shortest_path:
-                #             G.remove_node(node)
-                previous_shortest_path=shortest_path
-                valid_circles_prev=valid_circles
-                path_found=True
+                #             if node not in shortest_path:
+                #                 G.remove_node(node)
 
-            except:
-                print("no Path")
 
-            # if(path_found==True):
+                
+                 
+                    else:
+
+                        try:
+                            
+                            shortest_path = nx.dijkstra_path(G, startPoint, endPoint, weight='weight')
+                            distance = nx.dijkstra_path_length(G, startPoint, endPoint, weight='weight')
+
+
+                            print("Shortest PATH",shortest_path)
+                            print("Shortest PATH DISTANCE",distance)
+                            print("Shortest PATH DISTANCE IN CM",distance/pixels_per_cm)
+
+                            for i in range(len(shortest_path)):
+                                if(i+1<len(shortest_path)):
+                                    cv2.line(img2, (shortest_path[i]), (shortest_path[i+1]), (0, 255, 0), thickness=3, lineType=8)
+
+                            path_found=True
+
+                        except:
+                            pass
+                            #print("no Path")
+                    
+                startPoint_prev=startPoint
+                endPoint_prev=endPoint
+            else:
+                startPoint_prev=startPoint
+                endPoint_prev=endPoint
+                validPointCount=0
+        
+        if(path_found==True and startPoint!=() and endPoint!=0):
+            
+            # shortestGraph = nx.Graph()
+
+            # del shortest_path[0]
+            # del shortest_path[-1]
+        
+            # shortest_path.append(startPoint)
+            # shortest_path.append(endPoint)
+            # print("Shortest PATH",shortest_path)
+
+            # try:
             #     for i in range(len(shortest_path)):
-            #             if(i+1<len(shortest_path)):
-            #                 cv2.line(img2, (shortest_path[i]), (shortest_path[i+1]), (0, 255, 0), thickness=3, lineType=8)
+            #         for j in range(i+1, len(shortest_path)):
+            #             x1, y1 = shortest_path[i]
+            #             x2, y2 = shortest_path[j]
+            #             if (abs(x1-x2)<=50 or abs(x1-x2)==0) and (abs(y1-y2)<=50 or abs(y1-y2)==0):
+            #                 distance = sqrt((x1 - x2)**2 + (y1 - y2)**2)
+            #                 shortestGraph.add_edge(shortest_path[i], shortest_path[j], weight=distance)
+            #     shortest_path = nx.dijkstra_path(shortestGraph, startPoint, endPoint, weight='weight')
+                        
+            # except:
+            #     pass
+            
+
+            
+            
+            for i in range(len(shortest_path)):
+                    if(i+1<len(shortest_path)):
+                        # cv2.line(img2, (shortest_path[i][0]+ point_drift[0],shortest_path[i][1]+point_drift[1]), (shortest_path[i+1][0]+ point_drift[0],shortest_path[i+1][1]+point_drift[1]), (0, 255, 0), thickness=3, lineType=8)
+                          cv2.line(img2, (shortest_path[i]), (shortest_path[i+1]), (0, 255, 0), thickness=3, lineType=8)                        
 
 
         app.show_frame(mask,img,img2)
@@ -246,21 +329,21 @@ class App:
 
     def on_label_click1(event):
         App.bigImage=1
-        print("Label1 clicked!",App.bigImage)
+        # print("Label1 clicked!",App.bigImage)
         
 
     def on_label_click2(event):
         App.bigImage=2
-        print("Label2 clicked!")
+        #print("Label2 clicked!")
         
 
     def on_label_click3(event):
         App.bigImage=3
-        print("Label3 clicked!")
+        #print("Label3 clicked!")
 
     def update_slider(self, name, val):
         
-        print("{}: {}".format(name, val))
+        #print("{}: {}".format(name, val))
         if name == "LH":
             self.LH = int(val)
         if name == "LS":
@@ -273,7 +356,7 @@ class App:
            self.US= int(val)
         if name == "UV":
            self.UV = int(val)
-        print(self.LH)
+        #print(self.LH)
     
     def streamCameraClick(self):
         t1=threading.Thread(target=motion_recognitionThread,args=[1,app.selectedModel])
@@ -369,6 +452,7 @@ class App:
         options = ["paper", "realLife"]
         selection=StringVar()
         selection.set("paper")
+        self.selectedModel="paper"
         self.selectRoboflow=OptionMenu(topButtonsFrame, selection, *options,command=lambda selected_option=selection.get(): self.selectRobo(selected_option))
         self.selectRoboflow.pack(side=RIGHT)
 
