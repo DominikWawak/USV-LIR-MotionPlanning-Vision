@@ -12,6 +12,53 @@ import time
 import threading
 from roboflow import Roboflow
 import math 
+import paho.mqtt.client as mqtt
+
+
+
+ack_msg=""
+
+
+
+#****************************************************************************************************
+#*************MQTT Setup************************************************************************
+
+# Callback when the connection to the broker is established
+def on_connect(client, userdata, flags, rc):
+    print("Connected with result code " + str(rc))
+    # Subscribe to a channel
+    client.subscribe("test/res")
+
+# Callback when a message is received
+def on_message(client, userdata, msg):
+    global ack_msg
+    print("Received message on channel " + msg.topic + ": " + str(msg.payload))
+    m_decode = str(msg.payload.decode("utf-8", "ignore"))
+    m_decode = m_decode.replace(",", ':')
+    print("data Received", m_decode.split(":")[1])
+    ack_msg=m_decode.split(":")[1]
+
+# Create a new MQTT client
+client = mqtt.Client()
+client.on_connect = on_connect
+client.on_message = on_message
+
+# Connect to the Beebotte broker
+client.username_pw_set("9h1rq3Hf5cxTeQcb2yTYK3N6", "m33rs3IoJWxT9eX01hoxTLIDfLtq3EWN")
+client.connect("mqtt.beebotte.com", 1883, 60)
+
+
+# # Publish the payload to a channel
+# client.publish("test/res", 'Hello World')
+
+# Wait for incoming messages
+
+tmqtt=threading.Thread(target=client.loop_forever)
+tmqtt.start()
+
+
+#****************************************************************************************************
+#*************MQTT Setup************************************************************************
 
 
 
@@ -21,6 +68,8 @@ def motion_recognitionThread(option,mode):
     # rf = Roboflow(key)
     # project = rf.workspace().project(projectName)
     # model = project.version(version).model
+
+    
 
     print(mode)
     
@@ -65,7 +114,8 @@ def motion_recognitionThread(option,mode):
         for i in range(0,width,50):
             for j in range(0,height,50):
                 pointGrid.append([i,j])
-        # print(pointGrid)
+       
+
     previous_shortest_path=[]
     valid_circles_path_found=[]
     point_drift=(0,0)
@@ -74,6 +124,7 @@ def motion_recognitionThread(option,mode):
     validPointCount=0
     path_found=False 
     shortest_path=[]
+    directions=[]
     G = nx.Graph()
 
 
@@ -252,6 +303,7 @@ def motion_recognitionThread(option,mode):
                             
                             shortest_path = nx.dijkstra_path(G, startPoint, endPoint, weight='weight')
                             distance = nx.dijkstra_path_length(G, startPoint, endPoint, weight='weight')
+                            directions=[]
 
 
                             print("Shortest PATH",shortest_path)
@@ -261,7 +313,36 @@ def motion_recognitionThread(option,mode):
                             for i in range(len(shortest_path)):
                                 if(i+1<len(shortest_path)):
                                     cv2.line(img2, (shortest_path[i]), (shortest_path[i+1]), (0, 255, 0), thickness=3, lineType=8)
+                                    # Directions
+                                    if(shortest_path[i][0]<shortest_path[i+1][0] and shortest_path[i][1]<shortest_path[i+1][1]):
+                                        print("Diagonal Down Right")
+                                        directions.append("Diagonal Down Right")
+                                    elif(shortest_path[i][0]<shortest_path[i+1][0] and shortest_path[i][1]>shortest_path[i+1][1]):
+                                        print("Diagonal Up Right")
+                                        directions.append("Diagonal Up Right")
+                                    elif(shortest_path[i][0]>shortest_path[i+1][0] and shortest_path[i][1]<shortest_path[i+1][1]):
+                                        print("Diagonal Down Left")
+                                        directions.append("Diagonal Down Left")
+                                    elif(shortest_path[i][0]>shortest_path[i+1][0] and shortest_path[i][1]>shortest_path[i+1][1]):
+                                        print("Diagonal Up Left")
+                                        directions.append("Diagonal Up Left")
+                                    elif(shortest_path[i][0]<shortest_path[i+1][0] and shortest_path[i][1]==shortest_path[i+1][1]):
+                                        print("Right")
+                                        directions.append("Right")
+                                    elif(shortest_path[i][0]>shortest_path[i+1][0] and shortest_path[i][1]==shortest_path[i+1][1]):
+                                        print("Left")
+                                        directions.append("Left")
+                                    elif(shortest_path[i][0]==shortest_path[i+1][0] and shortest_path[i][1]<shortest_path[i+1][1]):
+                                        print("Down")
+                                        directions.append("Down")
+                                    elif(shortest_path[i][0]==shortest_path[i+1][0] and shortest_path[i][1]>shortest_path[i+1][1]):
+                                        print("Up")
+                                        directions.append("Up")
+                                    else:
+                                        print("No Direction") 
 
+                            
+                                        
                             path_found=True
 
                         except:
@@ -275,8 +356,9 @@ def motion_recognitionThread(option,mode):
                 endPoint_prev=endPoint
                 validPointCount=0
         
-        if(path_found==True and startPoint!=() and endPoint!=0):
-            
+        # if(path_found==True and startPoint!=() and endPoint!=0):
+        if(path_found==True ):
+            global ack_msg
             # shortestGraph = nx.Graph()
 
             # del shortest_path[0]
@@ -305,7 +387,25 @@ def motion_recognitionThread(option,mode):
             for i in range(len(shortest_path)):
                     if(i+1<len(shortest_path)):
                         # cv2.line(img2, (shortest_path[i][0]+ point_drift[0],shortest_path[i][1]+point_drift[1]), (shortest_path[i+1][0]+ point_drift[0],shortest_path[i+1][1]+point_drift[1]), (0, 255, 0), thickness=3, lineType=8)
-                          cv2.line(img2, (shortest_path[i]), (shortest_path[i+1]), (0, 255, 0), thickness=3, lineType=8)                        
+                          cv2.line(img2, (shortest_path[i]), (shortest_path[i+1]), (0, 255, 0), thickness=3, lineType=8) 
+
+            ack=0
+            for i in range(2):
+                if(len(directions)>0):
+                    print("sengind driection",directions[i])
+                    client.publish("test/res", '{"data":{directions[i]},"ispublic":false}')
+                    while(ack==0):
+                        #ack=recievedMessage
+                        print("waiting for ack",ack_msg)
+                        if(ack_msg[1:-1]=="ack"):
+                            ack=1
+                            ack_msg=""
+                        time.sleep(3)
+                    
+                    print("ack recieved",ack)
+
+                ack=0
+            path_found=False                       
 
 
         app.show_frame(mask,img,img2)
