@@ -17,6 +17,8 @@ import paho.mqtt.client as mqtt
 
 
 ack_msg=""
+boat_ready_msg=""
+path_finished=False
 
 
 
@@ -36,7 +38,12 @@ def on_message(client, userdata, msg):
     m_decode = str(msg.payload.decode("utf-8", "ignore"))
     m_decode = m_decode.replace(",", ':')
     print("data Received", m_decode.split(":")[1])
-    ack_msg=m_decode.split(":")[1]
+    message_decoded = m_decode.split(":")[1]
+    print("message_decoded", message_decoded)
+    if(message_decoded=='"ack"'):
+        ack_msg=m_decode.split(":")[1]
+    elif(message_decoded=="boat_ready"):
+        boat_ready_msg=m_decode.split(":")[1]
 
 # Create a new MQTT client
 client = mqtt.Client()
@@ -125,6 +132,7 @@ def motion_recognitionThread(option,mode):
     path_found=False 
     shortest_path=[]
     directions=[]
+    distances=[]
     G = nx.Graph()
 
 
@@ -138,7 +146,8 @@ def motion_recognitionThread(option,mode):
         
         success,img = video.read()
         success,img2 = video.read()
-        image = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
+        if img is not None and img.size > 0:
+            image = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
 
 
         # array for valid circle points
@@ -244,8 +253,8 @@ def motion_recognitionThread(option,mode):
 
 
  
-
-        if(startPoint!=() and endPoint!=() and not path_found): # if both points are found -> crate the graph
+        # boat_ready_msg!="")
+        if(startPoint!=() and endPoint!=() and not path_found) : # if both points are found -> crate the graph
 
             if(abs(startPoint[0]-startPoint_prev[0])<=101 and abs(endPoint[0]-endPoint_prev[0])<=101):
                 validPointCount+=1
@@ -255,6 +264,7 @@ def motion_recognitionThread(option,mode):
                     valid_circles_path_found=valid_circles
                     valid_circles.append(startPoint)
                     valid_circles.append(endPoint)
+                    validPointCount=0
 
                     if(usv_width_pixels==0):
                         usv_width_pixels=abs(start_point[0]-end_point[0])
@@ -282,6 +292,7 @@ def motion_recognitionThread(option,mode):
                                 #if (abs(x1-x2)<=73 or abs(x1-x2)==0) and (abs(y1-y2)<=73 or abs(y1-y2)==0):
                                 if (abs(x1-x2)<=50 or abs(x1-x2)==0) and (abs(y1-y2)<=50 or abs(y1-y2)==0):
                                     distance = sqrt((x1 - x2)**2 + (y1 - y2)**2)
+                                    
                                     G.add_edge(valid_circles[i], valid_circles[j], weight=distance)
 
                 # elif(startPoint and endPoint and (path_found==3)):
@@ -304,6 +315,7 @@ def motion_recognitionThread(option,mode):
                             shortest_path = nx.dijkstra_path(G, startPoint, endPoint, weight='weight')
                             distance = nx.dijkstra_path_length(G, startPoint, endPoint, weight='weight')
                             directions=[]
+                            distances=[]
 
 
                             print("Shortest PATH",shortest_path)
@@ -313,12 +325,14 @@ def motion_recognitionThread(option,mode):
                             for i in range(len(shortest_path)):
                                 if(i+1<len(shortest_path)):
                                     cv2.line(img2, (shortest_path[i]), (shortest_path[i+1]), (0, 255, 0), thickness=3, lineType=8)
+                                    distances.append(sqrt((shortest_path[i][0]-shortest_path[i+1][0])**2 + (shortest_path[i][1]-shortest_path[i+1][1])**2))
                                     # Directions
                                     if(shortest_path[i][0]<shortest_path[i+1][0] and shortest_path[i][1]<shortest_path[i+1][1]):
                                         print("Diagonal Down Right")
                                         directions.append("Diagonal Down Right")
                                     elif(shortest_path[i][0]<shortest_path[i+1][0] and shortest_path[i][1]>shortest_path[i+1][1]):
                                         print("Diagonal Up Right")
+                                        distances
                                         directions.append("Diagonal Up Right")
                                     elif(shortest_path[i][0]>shortest_path[i+1][0] and shortest_path[i][1]<shortest_path[i+1][1]):
                                         print("Diagonal Down Left")
@@ -357,8 +371,9 @@ def motion_recognitionThread(option,mode):
                 validPointCount=0
         
         # if(path_found==True and startPoint!=() and endPoint!=0):
-        if(path_found==True ):
+        if(path_found==True and not path_finished):
             global ack_msg
+            print("Distance",distances)
             # shortestGraph = nx.Graph()
 
             # del shortest_path[0]
@@ -392,10 +407,14 @@ def motion_recognitionThread(option,mode):
             ack=0
             for i in range(2):
                 if(len(directions)>0):
-                    print("sengind driection",directions[i])
-                    client.publish("test/res", '{"data":{directions[i]},"ispublic":false}')
+                    print("sending driection",directions[i])
+                    client.publish("test/res", '{"data":'+directions[i]+' _ '+str(round(distances[i]/pixels_per_cm))+',"ispublic":false}')
                     while(ack==0):
                         #ack=recievedMessage
+                        for i in range(len(shortest_path)):
+                          if(i+1<len(shortest_path)):
+                                # cv2.line(img2, (shortest_path[i][0]+ point_drift[0],shortest_path[i][1]+point_drift[1]), (shortest_path[i+1][0]+ point_drift[0],shortest_path[i+1][1]+point_drift[1]), (0, 255, 0), thickness=3, lineType=8)
+                                cv2.line(img2, (shortest_path[i]), (shortest_path[i+1]), (0, 255, 0), thickness=3, lineType=8) 
                         print("waiting for ack",ack_msg)
                         if(ack_msg[1:-1]=="ack"):
                             ack=1
@@ -405,7 +424,12 @@ def motion_recognitionThread(option,mode):
                     print("ack recieved",ack)
 
                 ack=0
-            path_found=False                       
+            if(len(directions)<=2):
+                print("FINAL PATH")
+                path_finished=True
+            else:
+                path_found=False      
+
 
 
         app.show_frame(mask,img,img2)
