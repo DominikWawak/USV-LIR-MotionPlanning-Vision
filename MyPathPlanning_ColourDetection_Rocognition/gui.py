@@ -146,6 +146,9 @@ def motion_recognitionThread(option,mode):
     # Loop
     # 
     while True:
+        
+        global path_finished
+
 
         
         success,img = video.read()
@@ -257,7 +260,7 @@ def motion_recognitionThread(option,mode):
                     cv2.circle(img2, startPoint, 10, (0,255,0), -1)
                     
                         
-                if(bounding_box['class']=="boat"):
+                if(bounding_box['class']=="person"):
                     # for cnt in big_countours:
                     #     if( cv2.pointPolygonTest(cnt,(bounding_box['x'],bounding_box['y']),False)==1):
                     #         person_contour=cnt
@@ -267,6 +270,15 @@ def motion_recognitionThread(option,mode):
                     # endPoint=(int(x+w/2),int(y+h/2))
                     endPoint=(int(x0+bounding_box['width']/2), int(y0+bounding_box['height'] / 2))
                     cv2.circle(img2, endPoint, 10, (0,255,0), -1)
+
+                if startPoint != () and endPoint != ():
+                    # Detect if boat is close to the person 
+                    if(abs(startPoint[0]-endPoint[0])<=500 and abs(startPoint[1]-endPoint[1])<=200):
+                        print("Boat is close to the person")
+                        client.publish("test/res", "stop")
+                        path_finished=True
+
+                    
 
 
         
@@ -279,12 +291,12 @@ def motion_recognitionThread(option,mode):
 
  
         # boat_ready_msg!="")
-        if(startPoint!=() and endPoint!=()) : # if both points are found -> crate the graph
+        if(startPoint!=() and endPoint!=() and not path_finished) : # if both points are found -> crate the graph
 
             if(abs(startPoint[0]-startPoint_prev[0])<=101 and abs(endPoint[0]-endPoint_prev[0])<=101):
                 validPointCount+=1
                 print("validPointCount",validPointCount)
-                if(validPointCount==4):
+                if(validPointCount==2):
                     point_drift=(startPoint[0]-startPoint_prev[0],startPoint[1]-startPoint_prev[1])
                     valid_circles_path_found=valid_circles
 
@@ -385,21 +397,38 @@ def motion_recognitionThread(option,mode):
                                 # elif(shortest_path[i][0]>shortest_path[i+1][0] and shortest_path[i][1]>shortest_path[i+1][1]):
                                 #     print("Diagonal Up Left")
                                 #     directions.append("Diagonal Up Left")
-                                # elif(shortest_path[i][0]<shortest_path[i+1][0] and shortest_path[i][1]==shortest_path[i+1][1]):
-                                #     print("Right")
-                                #     directions.append("Right")
-                                # elif(shortest_path[i][0]>shortest_path[i+1][0] and shortest_path[i][1]==shortest_path[i+1][1]):
-                                #     print("Left")
-                                #     directions.append("Left")
-                                # elif(shortest_path[i][0]==shortest_path[i+1][0] and shortest_path[i][1]<shortest_path[i+1][1]):
-                                #     print("Down")
-                                #     directions.append("Down")
-                                # elif(shortest_path[i][0]==shortest_path[i+1][0] and shortest_path[i][1]>shortest_path[i+1][1]):
-                                #     print("Up")
-                                #     directions.append("Up")
-                                # else:
-                                #     print("No Direction")   
+                                if(shortest_path[i][0]<shortest_path[i+1][0] and shortest_path[i][1]==shortest_path[i+1][1]):
+                                    print("Right")
+                                    #directions.append("east")
+                                    directions.append("north")
+                                elif(shortest_path[i][0]>shortest_path[i+1][0] and shortest_path[i][1]==shortest_path[i+1][1]):
+                                    print("Left")
+                                    #directions.append("west")
+                                    directions.append("south")
+                                elif(shortest_path[i][0]==shortest_path[i+1][0] and shortest_path[i][1]<shortest_path[i+1][1]):
+                                    print("Down")
+                                    #directions.append("south")
+                                    directions.append("east")
+                                elif(shortest_path[i][0]==shortest_path[i+1][0] and shortest_path[i][1]>shortest_path[i+1][1]):
+                                    print("Up")
+                                    #directions.append("north")
+                                    directions.append("west")
+                                else:
+                                    print("No Direction")   
                         path_found=True
+                        print("Directions",directions)
+
+                        if(len(directions)>0):
+                            if(len(directions)==1):
+                                 print("sending STOP")
+                                 client.publish("test/res", "stop")
+                            else:
+                                print("sending driection",directions[0])
+                                client.publish("test/res", directions[0])
+                            
+                        # for direction in directions:
+                        #     print("sending driection",direction)
+                        #     client.publish("test/res", direction)
 
                     except:
                         pass
@@ -411,6 +440,14 @@ def motion_recognitionThread(option,mode):
                 startPoint_prev=startPoint
                 endPoint_prev=endPoint
                 validPointCount=0
+            
+           
+
+                #client.publish("test/res", '{"data":'+directions[i]+' _ '+str(round(distances[i]/pixels_per_cm))+',"ispublic":false}')
+
+
+
+
         
         # # if(path_found==True and startPoint!=() and endPoint!=0):
         # if(path_found==True and not path_finished):
