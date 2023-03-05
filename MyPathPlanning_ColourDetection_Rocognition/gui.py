@@ -2,8 +2,9 @@
 from tkinter import *
 from tkinter.filedialog import askopenfilename
 from PIL import Image, ImageTk
-import pafy
+from cap_from_youtube import cap_from_youtube
 import cv2
+import cvzone
 import numpy as np
 import config
 import networkx as nx
@@ -20,6 +21,7 @@ ack_msg=""
 boat_ready_msg=""
 path_finished=False
 boat_heading=""
+simultaion_mode=True
 
 
 
@@ -91,6 +93,10 @@ def motion_recognitionThread(option,mode):
         rf = Roboflow(api_key=config.apiKeySM2)
         project = rf.workspace().project("saveme2")
         model = project.version(2).model
+    elif(mode=="search_and_rescue"):
+        rf = Roboflow(api_key="vcq6WDRWgu2bLiH4FVT5")
+        project = rf.workspace().project("usv_lir_search_and_rescue")
+        model = project.version(3).model
 
 
     if(option==1):
@@ -101,9 +107,10 @@ def motion_recognitionThread(option,mode):
         video = cv2.VideoCapture(fn)
     elif(option==3):
         url = app.stream3Text.get()
-        video = pafy.new(url)
-        best = video.getbest(preftype="mp4")
-        video = cv2.VideoCapture(best.url)
+        video=cap_from_youtube(url,'720p60')
+        # best = video.getbest(preftype="mp4")
+        # video = cv2.VideoCapture(best.url)
+        # TEST VIDEO FOR PERSON https://www.youtube.com/watch?v=5n7ZNLvegBo
 
     width=0
     height=0
@@ -145,6 +152,20 @@ def motion_recognitionThread(option,mode):
     # 
     # Loop
     # 
+
+    # Create the person simulated image
+    # load the overlay image. size should be smaller than video frame size
+    imgPerson = cv2.imread('MyPathPlanning_ColourDetection_Rocognition/res/pp1.png', cv2.IMREAD_UNCHANGED)
+    #imgPerson = cv2.resize(imgPerson,(50,50))
+    imgUSV = cv2.imread('MyPathPlanning_ColourDetection_Rocognition/res/usv.png', cv2.IMREAD_UNCHANGED)
+    imgUSV = cv2.resize(imgUSV,(250,450))
+
+    # Get Image dimensions
+    imgPerson_height, imgPerson_width, _ = imgPerson.shape
+    imgUSV_height, imgUSV_width, _ = imgUSV.shape
+    
+  
+
     while True:
         
         global path_finished
@@ -164,6 +185,18 @@ def motion_recognitionThread(option,mode):
         valid_contours=[]
         startPoint=()
         endPoint=()
+
+
+        if simultaion_mode:
+            xp=50
+            yp=50
+
+            # add image to frame
+            #img[ yp:yp+imgPerson_height, xp:xp+imgPerson_width]=imgPerson
+            img = cvzone.overlayPNG(img, imgPerson, [xp,yp])
+            img = cvzone.overlayPNG(img, imgUSV, [width-imgUSV_width,height-imgUSV_height])
+        
+        
 
 
         #****************************************************************************************************
@@ -569,7 +602,7 @@ class App:
         self.master = master
         master.title("Video Stream")
 
-
+      
         rightFrame=Frame(master)
         rightFrame.pack(side='right')
 
@@ -629,7 +662,7 @@ class App:
         self.stream3Text.pack(side=LEFT)
 
 
-        options = ["paper", "realLife"]
+        options = ["paper", "realLife","search_and_rescue"]
         selection=StringVar()
         selection.set("paper")
         self.selectedModel="paper"
