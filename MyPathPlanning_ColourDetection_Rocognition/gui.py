@@ -22,6 +22,8 @@ boat_ready_msg=""
 path_finished=False
 boat_heading=""
 simultaion_mode=True
+usv_simulation = False
+start_path_planning = False
 
 
 
@@ -163,7 +165,13 @@ def motion_recognitionThread(option,mode):
     # Get Image dimensions
     imgPerson_height, imgPerson_width, _ = imgPerson.shape
     imgUSV_height, imgUSV_width, _ = imgUSV.shape
-    
+
+    # Set initial position of images and used for change 
+    xp=50
+    yp=50
+    deltaXUSV=50
+    deltaYUSV=50
+
   
 
     while True:
@@ -187,14 +195,13 @@ def motion_recognitionThread(option,mode):
         endPoint=()
 
 
-        if simultaion_mode:
-            xp=50
-            yp=50
-
+        if simultaion_mode: 
             # add image to frame
             #img[ yp:yp+imgPerson_height, xp:xp+imgPerson_width]=imgPerson
             img = cvzone.overlayPNG(img, imgPerson, [xp,yp])
-            img = cvzone.overlayPNG(img, imgUSV, [width-imgUSV_width,height-imgUSV_height])
+            if usv_simulation:
+                img = cvzone.overlayPNG(img, imgUSV, [(width-deltaXUSV)-imgUSV_width,(height-deltaYUSV)-imgUSV_height])
+           
         
         
 
@@ -247,277 +254,297 @@ def motion_recognitionThread(option,mode):
         #*************OBJECT RECOGNITION _ START************************************************************************
 
 
-        prediction=model.predict(img, confidence=40, overlap=30).json()
+        if start_path_planning:
+            prediction=model.predict(img, confidence=40, overlap=30).json()
 
-        bounding_box=None
-        for i in range(0,3,1): 
-            try:
+            bounding_box=None
+            for i in range(0,3,1): 
+                try:
 
-                # print(prediction['predictions'][i]['class'])
+                    # print(prediction['predictions'][i]['class'])
 
 
-                bounding_box=prediction['predictions'][i]
-                x0 = bounding_box['x'] - bounding_box['width'] / 2
-                x1 = bounding_box['x'] + bounding_box['width'] / 2
-                y0 = bounding_box['y'] - bounding_box['height'] / 2
-                y1 = bounding_box['y'] + bounding_box['height'] / 2
+                    bounding_box=prediction['predictions'][i]
+                    x0 = bounding_box['x'] - bounding_box['width'] / 2
+                    x1 = bounding_box['x'] + bounding_box['width'] / 2
+                    y0 = bounding_box['y'] - bounding_box['height'] / 2
+                    y1 = bounding_box['y'] + bounding_box['height'] / 2
 
-                start_point = (int(x0), int(y0))
-                end_point = (int(x1), int(y1))
-                cv2.rectangle(img, start_point, end_point, color=(0,0,0), thickness=2)
+                    start_point = (int(x0), int(y0))
+                    end_point = (int(x1), int(y1))
+                    cv2.rectangle(img, start_point, end_point, color=(0,0,0), thickness=2)
 
-                cv2.putText(
-                img, # PIL.Image object to place text on
-                bounding_box['class'],#text to place on image
-                (int(x0), int(y0)+10),#location of text in pixels
-                fontFace = cv2.FONT_HERSHEY_SIMPLEX, #text font
-                fontScale = 0.6,#font scale
-                color = (255, 255, 255),#text color in RGB
-                thickness=2#thickness/"weight" of text       
-                )
-            except:
-                pass
-                # print("Nothing found")
+                    cv2.putText(
+                    img, # PIL.Image object to place text on
+                    bounding_box['class'],#text to place on image
+                    (int(x0), int(y0)+10),#location of text in pixels
+                    fontFace = cv2.FONT_HERSHEY_SIMPLEX, #text font
+                    fontScale = 0.6,#font scale
+                    color = (255, 255, 255),#text color in RGB
+                    thickness=2#thickness/"weight" of text       
+                    )
+                except:
+                    pass
+                    # print("Nothing found")
 
-            if(bounding_box):
-                if(bounding_box['class']=="usv"):
-                    # for cnt in big_countours:
-                    #     if( cv2.pointPolygonTest(cnt,(bounding_box['x'],bounding_box['y']),False)==1):
-                    #         usv_contour=cnt
-                    #         break
-                    # x,y,w,h = cv2.boundingRect(usv_contour)
-                    
-                    # startPoint=(int(x+w/2),int(y+h/2))
+                if(bounding_box):
+                    if(bounding_box['class']=="usv" or bounding_box['class']=="2" or bounding_box['class']=="4"  ):
+                        # for cnt in big_countours:
+                        #     if( cv2.pointPolygonTest(cnt,(bounding_box['x'],bounding_box['y']),False)==1):
+                        #         usv_contour=cnt
+                        #         break
+                        # x,y,w,h = cv2.boundingRect(usv_contour)
                         
-                    startPoint=(int(x0+bounding_box['width']/2), int(y0+bounding_box['height'] / 2))
-                    cv2.circle(img2, startPoint, 10, (0,255,0), -1)
+                        # startPoint=(int(x+w/2),int(y+h/2))
+                            
+                        startPoint=(int(x0+bounding_box['width']/2), int(y0+bounding_box['height'] / 2))
+                        cv2.circle(img2, startPoint, 10, (0,255,0), -1)
+                        
+                            
+                    if(bounding_box['class']=="person" or bounding_box['class']=="0"):
+                        # for cnt in big_countours:
+                        #     if( cv2.pointPolygonTest(cnt,(bounding_box['x'],bounding_box['y']),False)==1):
+                        #         person_contour=cnt
+                        #         break
+
+                        # x,y,w,h = cv2.boundingRect(person_contour)  
+                        # endPoint=(int(x+w/2),int(y+h/2))
+                        endPoint=(int(x0+bounding_box['width']/2), int(y0+bounding_box['height'] / 2))
+                        cv2.circle(img2, endPoint, 10, (0,255,0), -1)
+
+                    if startPoint != () and endPoint != ():
+                        # Detect if boat is close to the person 
+                        if(abs(startPoint[0]-endPoint[0])<=500 and abs(startPoint[1]-endPoint[1])<=200):
+                            print("Boat is close to the person")
+                            client.publish("test/res", "stop1")
+                            path_finished=True
+
+                        
+
+
+            
+            #****************************************************************************************************
+            #*************OBJECT RECOGNITION _END************************************************************************
+
+
+
+
+
+    
+            # boat_ready_msg!="")
+            if(startPoint!=() and endPoint!=() and not path_finished) : # if both points are found -> crate the graph
+
+                if(abs(startPoint[0]-startPoint_prev[0])<=101 and abs(endPoint[0]-endPoint_prev[0])<=101):
+                    validPointCount+=1
+                    print("validPointCount",validPointCount)
+                    if(validPointCount==2):
+                        point_drift=(startPoint[0]-startPoint_prev[0],startPoint[1]-startPoint_prev[1])
+                        valid_circles_path_found=valid_circles
+
+
+
+                        start_nearest = min(valid_circles, key=lambda x: sqrt((startPoint[0] - x[0])**2 + (startPoint[1] - x[1])**2))
+                        nearest_dist =sqrt((startPoint[0] - start_nearest[0])**2 + (startPoint[1] - start_nearest[1])**2)
+
+                        end_nearest = min(valid_circles, key=lambda x: sqrt((endPoint[0] - x[0])**2 + (endPoint[1] - x[1])**2))
+                        nearest_dist_end=sqrt((endPoint[0] - end_nearest[0])**2 + (endPoint[1] - end_nearest[1])**2)
+
+                        valid_circles.append(startPoint)
+                        valid_circles.append(endPoint)
+                        validPointCount=0
+
+                        if(usv_width_pixels==0):
+                            usv_width_pixels=abs(start_point[0]-end_point[0])
+                            print("USV WIDTH IN PIXELS",usv_width_pixels)
+                            pixels_per_cm=usv_width_pixels/usv_width_cm
+                            print("PIXELS PER CM",pixels_per_cm)
+                    
+
+                        # Create a graph
+                        for point in valid_circles:
+                            x, y = point
+                            # if(x>= startPoint[0] and x<=endPoint[0]): # minimize the amount of points
+                            G.add_node(point)
+
                     
                         
-                if(bounding_box['class']=="person"):
-                    # for cnt in big_countours:
-                    #     if( cv2.pointPolygonTest(cnt,(bounding_box['x'],bounding_box['y']),False)==1):
-                    #         person_contour=cnt
-                    #         break
+                        # Add edges between nodes with weights as Euclidean distances
+                        for i in range(len(valid_circles)-1):
+                            for j in range(i+1, len(valid_circles)):
+                                
+                                x1, y1 = valid_circles[i]
+                                x2, y2 = valid_circles[j]
+                                
+                                distance = sqrt((x1 - x2)**2 + (y1 - y2)**2)
+                                if distance <= 50:
+                                    G.add_edge(valid_circles[i], valid_circles[j], weight=distance)
 
-                    # x,y,w,h = cv2.boundingRect(person_contour)  
-                    # endPoint=(int(x+w/2),int(y+h/2))
-                    endPoint=(int(x0+bounding_box['width']/2), int(y0+bounding_box['height'] / 2))
-                    cv2.circle(img2, endPoint, 10, (0,255,0), -1)
-
-                if startPoint != () and endPoint != ():
-                    # Detect if boat is close to the person 
-                    if(abs(startPoint[0]-endPoint[0])<=500 and abs(startPoint[1]-endPoint[1])<=200):
-                        print("Boat is close to the person")
-                        client.publish("test/res", "stop")
-                        path_finished=True
-
-                    
+                        
+                        
+                        print("nearest_dist",nearest_dist,"nearest_dist_end",nearest_dist_end)
+                        print("start_nearest",start_nearest,"end_nearest",end_nearest,"startPoint",startPoint,"endPoint",endPoint)
 
 
-        
-        #****************************************************************************************************
-        #*************OBJECT RECOGNITION _END************************************************************************
-
-
-
-
-
- 
-        # boat_ready_msg!="")
-        if(startPoint!=() and endPoint!=() and not path_finished) : # if both points are found -> crate the graph
-
-            if(abs(startPoint[0]-startPoint_prev[0])<=101 and abs(endPoint[0]-endPoint_prev[0])<=101):
-                validPointCount+=1
-                print("validPointCount",validPointCount)
-                if(validPointCount==2):
-                    point_drift=(startPoint[0]-startPoint_prev[0],startPoint[1]-startPoint_prev[1])
-                    valid_circles_path_found=valid_circles
+                        for circ in valid_circles:
+                            distance_toStart = sqrt((startPoint[0] - circ[0])**2 + (startPoint[1] - circ[1])**2)
+                            distance_to_end = sqrt((endPoint[0] - circ[0])**2 + (endPoint[1] - circ[1])**2)
+                            if(nearest_dist+50>=distance_toStart):
+                                G.add_edge(startPoint, circ, weight=distance_toStart)
+                                cv2.circle(img, circ, 10, (0,255,0), -1)
+                        
+                            if (nearest_dist_end+50>=distance_to_end):
+                                G.add_edge(endPoint, circ, weight=distance_to_end)
+                                cv2.circle(img, circ, 10, (0,255,0), -1)
+                        
 
 
 
-                    start_nearest = min(valid_circles, key=lambda x: sqrt((startPoint[0] - x[0])**2 + (startPoint[1] - x[1])**2))
-                    nearest_dist =sqrt((startPoint[0] - start_nearest[0])**2 + (startPoint[1] - start_nearest[1])**2)
 
-                    end_nearest = min(valid_circles, key=lambda x: sqrt((endPoint[0] - x[0])**2 + (endPoint[1] - x[1])**2))
-                    nearest_dist_end=sqrt((endPoint[0] - end_nearest[0])**2 + (endPoint[1] - end_nearest[1])**2)
+                        
 
-                    valid_circles.append(startPoint)
-                    valid_circles.append(endPoint)
-                    validPointCount=0
+                        # G.add_edge(startPoint, start_nearest, weight=sqrt((start_point[0] - start_nearest[0])**2 + (start_point[1] - start_nearest[1])**2))
 
-                    if(usv_width_pixels==0):
-                        usv_width_pixels=abs(start_point[0]-end_point[0])
-                        print("USV WIDTH IN PIXELS",usv_width_pixels)
-                        pixels_per_cm=usv_width_pixels/usv_width_cm
-                        print("PIXELS PER CM",pixels_per_cm)
+                        # end_nearest = min(valid_circles, key=lambda x: sqrt((end_point[0] - x[0])**2 + (end_point[1] - x[1])**2))
+                        # G.add_edge(endPoint, end_nearest, weight=sqrt((end_point[0] - end_nearest[0])**2 + (end_point[1] - end_nearest[1])**2))
                 
-
-                    # Create a graph
-                    for point in valid_circles:
-                        x, y = point
-                        # if(x>= startPoint[0] and x<=endPoint[0]): # minimize the amount of points
-                        G.add_node(point)
-
-                   
-                    
-                    # Add edges between nodes with weights as Euclidean distances
-                    for i in range(len(valid_circles)-1):
-                        for j in range(i+1, len(valid_circles)):
+                
+                        try:
                             
-                            x1, y1 = valid_circles[i]
-                            x2, y2 = valid_circles[j]
-                            
-                            distance = sqrt((x1 - x2)**2 + (y1 - y2)**2)
-                            if distance <= 50:
-                                G.add_edge(valid_circles[i], valid_circles[j], weight=distance)
-
-                    
-                    
-                    print("nearest_dist",nearest_dist,"nearest_dist_end",nearest_dist_end)
-                    print("start_nearest",start_nearest,"end_nearest",end_nearest,"startPoint",startPoint,"endPoint",endPoint)
+                            shortest_path = nx.dijkstra_path(G, startPoint, endPoint, weight='weight')
+                            distance = nx.dijkstra_path_length(G, startPoint, endPoint, weight='weight')
+                            directions=[]
+                            distances=[]
 
 
-                    for circ in valid_circles:
-                        distance_toStart = sqrt((startPoint[0] - circ[0])**2 + (startPoint[1] - circ[1])**2)
-                        distance_to_end = sqrt((endPoint[0] - circ[0])**2 + (endPoint[1] - circ[1])**2)
-                        if(nearest_dist+50>=distance_toStart):
-                            G.add_edge(startPoint, circ, weight=distance_toStart)
-                            cv2.circle(img, circ, 10, (0,255,0), -1)
-                    
-                        if (nearest_dist_end+50>=distance_to_end):
-                            G.add_edge(endPoint, circ, weight=distance_to_end)
-                            cv2.circle(img, circ, 10, (0,255,0), -1)
-                    
+                            print("Shortest PATH",shortest_path)
+                            print("Shortest PATH DISTANCE",distance)
+                            print("Shortest PATH DISTANCE IN CM",distance/pixels_per_cm)
 
+                            for i in range(len(shortest_path)):
+                                if(i+1<len(shortest_path)):
+                                    cv2.line(img2, (shortest_path[i]), (shortest_path[i+1]), (0, 255, 0), thickness=3, lineType=8)
+                                    distances.append(sqrt((shortest_path[i][0]-shortest_path[i+1][0])**2 + (shortest_path[i][1]-shortest_path[i+1][1])**2))
+                                    # # Directions
+                                    # if(shortest_path[i][0]<shortest_path[i+1][0] and shortest_path[i][1]<shortest_path[i+1][1]):
+                                    #     print("Diagonal Down Right")
+                                    #     directions.append("Diagonal Down Right")
+                                    # elif(shortest_path[i][0]<shortest_path[i+1][0] and shortest_path[i][1]>shortest_path[i+1][1]):
+                                    #     print("Diagonal Up Right")
+                                    #     distances
+                                    #     directions.append("Diagonal Up Right")
+                                    # elif(shortest_path[i][0]>shortest_path[i+1][0] and shortest_path[i][1]<shortest_path[i+1][1]):
+                                    #     print("Diagonal Down Left")
+                                    #     directions.append("Diagonal Down Left")
+                                    # elif(shortest_path[i][0]>shortest_path[i+1][0] and shortest_path[i][1]>shortest_path[i+1][1]):
+                                    #     print("Diagonal Up Left")
+                                    #     directions.append("Diagonal Up Left")
+                                    if(shortest_path[i][0]<shortest_path[i+1][0] and shortest_path[i][1]==shortest_path[i+1][1]):
+                                        print("Right")
+                                        directions.append("east")
+                                        #directions.append("north")
+                                    elif(shortest_path[i][0]>shortest_path[i+1][0] and shortest_path[i][1]==shortest_path[i+1][1]):
+                                        print("Left")
+                                        directions.append("west")
+                                        #directions.append("south")
+                                    elif(shortest_path[i][0]==shortest_path[i+1][0] and shortest_path[i][1]<shortest_path[i+1][1]):
+                                        print("Down")
+                                        directions.append("south")
+                                        #directions.append("east")
+                                    elif(shortest_path[i][0]==shortest_path[i+1][0] and shortest_path[i][1]>shortest_path[i+1][1]):
+                                        print("Up")
+                                        directions.append("north")
+                                        #directions.append("west")
+                                    else:
+                                        print("No Direction")   
+                            path_found=True
+                            print("Directions",directions)
 
-
-
-                    
-
-                    # G.add_edge(startPoint, start_nearest, weight=sqrt((start_point[0] - start_nearest[0])**2 + (start_point[1] - start_nearest[1])**2))
-
-                    # end_nearest = min(valid_circles, key=lambda x: sqrt((end_point[0] - x[0])**2 + (end_point[1] - x[1])**2))
-                    # G.add_edge(endPoint, end_nearest, weight=sqrt((end_point[0] - end_nearest[0])**2 + (end_point[1] - end_nearest[1])**2))
-            
-               
-                    try:
-                        
-                        shortest_path = nx.dijkstra_path(G, startPoint, endPoint, weight='weight')
-                        distance = nx.dijkstra_path_length(G, startPoint, endPoint, weight='weight')
-                        directions=[]
-                        distances=[]
-
-
-                        print("Shortest PATH",shortest_path)
-                        print("Shortest PATH DISTANCE",distance)
-                        print("Shortest PATH DISTANCE IN CM",distance/pixels_per_cm)
-
-                        for i in range(len(shortest_path)):
-                            if(i+1<len(shortest_path)):
-                                cv2.line(img2, (shortest_path[i]), (shortest_path[i+1]), (0, 255, 0), thickness=3, lineType=8)
-                                distances.append(sqrt((shortest_path[i][0]-shortest_path[i+1][0])**2 + (shortest_path[i][1]-shortest_path[i+1][1])**2))
-                                # # Directions
-                                # if(shortest_path[i][0]<shortest_path[i+1][0] and shortest_path[i][1]<shortest_path[i+1][1]):
-                                #     print("Diagonal Down Right")
-                                #     directions.append("Diagonal Down Right")
-                                # elif(shortest_path[i][0]<shortest_path[i+1][0] and shortest_path[i][1]>shortest_path[i+1][1]):
-                                #     print("Diagonal Up Right")
-                                #     distances
-                                #     directions.append("Diagonal Up Right")
-                                # elif(shortest_path[i][0]>shortest_path[i+1][0] and shortest_path[i][1]<shortest_path[i+1][1]):
-                                #     print("Diagonal Down Left")
-                                #     directions.append("Diagonal Down Left")
-                                # elif(shortest_path[i][0]>shortest_path[i+1][0] and shortest_path[i][1]>shortest_path[i+1][1]):
-                                #     print("Diagonal Up Left")
-                                #     directions.append("Diagonal Up Left")
-                                if(shortest_path[i][0]<shortest_path[i+1][0] and shortest_path[i][1]==shortest_path[i+1][1]):
-                                    print("Right")
-                                    #directions.append("east")
-                                    directions.append("north")
-                                elif(shortest_path[i][0]>shortest_path[i+1][0] and shortest_path[i][1]==shortest_path[i+1][1]):
-                                    print("Left")
-                                    #directions.append("west")
-                                    directions.append("south")
-                                elif(shortest_path[i][0]==shortest_path[i+1][0] and shortest_path[i][1]<shortest_path[i+1][1]):
-                                    print("Down")
-                                    #directions.append("south")
-                                    directions.append("east")
-                                elif(shortest_path[i][0]==shortest_path[i+1][0] and shortest_path[i][1]>shortest_path[i+1][1]):
-                                    print("Up")
-                                    #directions.append("north")
-                                    directions.append("west")
+                            if(len(directions)>0):
+                                if(len(directions)==1):
+                                    print("sending STOP")
+                                    client.publish("test/res", "stop1")
                                 else:
-                                    print("No Direction")   
-                        path_found=True
-                        print("Directions",directions)
+                                    print("sending driection",directions[0])
+                                    client.publish("test/res", directions[0])
 
-                        if(len(directions)>0):
-                            if(len(directions)==1):
-                                 print("sending STOP")
-                                 client.publish("test/res", "stop")
-                            else:
-                                print("sending driection",directions[0])
-                                client.publish("test/res", directions[0])
-                            
-                        # for direction in directions:
-                        #     print("sending driection",direction)
-                        #     client.publish("test/res", direction)
+                                    if simultaion_mode and usv_simulation:
+                                        if(directions[0]=="north"):
+                                            #move boat image up 50 pixels in the image and rotate image
+                                            deltaYUSV=deltaYUSV+50
+                                        elif(directions[0]=="south"):
+                                            #imgUSV = cv2.rotate(imgUSV, cv2.ROTATE_180)
+                                            #imgUSV_height, imgUSV_width, _ = imgUSV.shape
+                                            deltaYUSV=deltaYUSV-50
+                                        elif(directions[0]=="east"):
+                                            #imgUSV= cv2.rotate(imgUSV, cv2.ROTATE_90_CLOCKWISE)
+                                            deltaXUSV=deltaXUSV-50
+                                            imgUSV_height, imgUSV_width, _ = imgUSV.shape
+                                        elif(directions[0]=="west"):
+                                            #imgUSV= cv2.rotate(imgUSV, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                                            deltaXUSV=deltaXUSV+50
+                                            #imgUSV_height, imgUSV_width, _ = imgUSV.shape
 
-                    except:
-                        pass
-                        #print("no Path")
-                    
-                startPoint_prev=startPoint
-                endPoint_prev=endPoint
-            else:
-                startPoint_prev=startPoint
-                endPoint_prev=endPoint
-                validPointCount=0
+                                        else:
+                                            print("No Direction")
+
+                                
+                        
+
+                        except:
+                            pass
+                            #print("no Path")
+                        
+                    startPoint_prev=startPoint
+                    endPoint_prev=endPoint
+                else:
+                    startPoint_prev=startPoint
+                    endPoint_prev=endPoint
+                    validPointCount=0
+                
             
-           
 
-                #client.publish("test/res", '{"data":'+directions[i]+' _ '+str(round(distances[i]/pixels_per_cm))+',"ispublic":false}')
-
+                    #client.publish("test/res", '{"data":'+directions[i]+' _ '+str(round(distances[i]/pixels_per_cm))+',"ispublic":false}')
 
 
 
-        
-        # # if(path_found==True and startPoint!=() and endPoint!=0):
-        # if(path_found==True and not path_finished):
-        #     global ack_msg
-        #     print("Distance",distances)
- 
-           
-        #     for i in range(len(shortest_path)):
-        #             if(i+1<len(shortest_path)):
-        #                 # cv2.line(img2, (shortest_path[i][0]+ point_drift[0],shortest_path[i][1]+point_drift[1]), (shortest_path[i+1][0]+ point_drift[0],shortest_path[i+1][1]+point_drift[1]), (0, 255, 0), thickness=3, lineType=8)
-        #                   cv2.line(img2, (shortest_path[i]), (shortest_path[i+1]), (0, 255, 0), thickness=3, lineType=8) 
 
-        #     ack=0
-        #     for i in range(2):
-        #         if(len(directions)>0):
-        #             print("sending driection",directions[i])
-        #             client.publish("test/res", '{"data":'+directions[i]+' _ '+str(round(distances[i]/pixels_per_cm))+',"ispublic":false}')
-        #             while(ack==0):
-        #                 #ack=recievedMessage
-        #                 for i in range(len(shortest_path)):
-        #                   if(i+1<len(shortest_path)):
-        #                         # cv2.line(img2, (shortest_path[i][0]+ point_drift[0],shortest_path[i][1]+point_drift[1]), (shortest_path[i+1][0]+ point_drift[0],shortest_path[i+1][1]+point_drift[1]), (0, 255, 0), thickness=3, lineType=8)
-        #                         cv2.line(img2, (shortest_path[i]), (shortest_path[i+1]), (0, 255, 0), thickness=3, lineType=8) 
-        #                 print("waiting for ack",ack_msg)
-        #                 if(ack_msg[1:-1]=="ack"):
-        #                     ack=1
-        #                     ack_msg=""
-        #                 time.sleep(3)
-                    
-        #             print("ack recieved",ack)
+            
+            # # if(path_found==True and startPoint!=() and endPoint!=0):
+            # if(path_found==True and not path_finished):
+            #     global ack_msg
+            #     print("Distance",distances)
+    
+            
+            #     for i in range(len(shortest_path)):
+            #             if(i+1<len(shortest_path)):
+            #                 # cv2.line(img2, (shortest_path[i][0]+ point_drift[0],shortest_path[i][1]+point_drift[1]), (shortest_path[i+1][0]+ point_drift[0],shortest_path[i+1][1]+point_drift[1]), (0, 255, 0), thickness=3, lineType=8)
+            #                   cv2.line(img2, (shortest_path[i]), (shortest_path[i+1]), (0, 255, 0), thickness=3, lineType=8) 
 
-        #         ack=0
-        #     if(len(directions)<=2):
-        #         print("FINAL PATH")
-        #         path_finished=True
-        #     else:
-        #         path_found=False      
+            #     ack=0
+            #     for i in range(2):
+            #         if(len(directions)>0):
+            #             print("sending driection",directions[i])
+            #             client.publish("test/res", '{"data":'+directions[i]+' _ '+str(round(distances[i]/pixels_per_cm))+',"ispublic":false}')
+            #             while(ack==0):
+            #                 #ack=recievedMessage
+            #                 for i in range(len(shortest_path)):
+            #                   if(i+1<len(shortest_path)):
+            #                         # cv2.line(img2, (shortest_path[i][0]+ point_drift[0],shortest_path[i][1]+point_drift[1]), (shortest_path[i+1][0]+ point_drift[0],shortest_path[i+1][1]+point_drift[1]), (0, 255, 0), thickness=3, lineType=8)
+            #                         cv2.line(img2, (shortest_path[i]), (shortest_path[i+1]), (0, 255, 0), thickness=3, lineType=8) 
+            #                 print("waiting for ack",ack_msg)
+            #                 if(ack_msg[1:-1]=="ack"):
+            #                     ack=1
+            #                     ack_msg=""
+            #                 time.sleep(3)
+                        
+            #             print("ack recieved",ack)
+
+            #         ack=0
+            #     if(len(directions)<=2):
+            #         print("FINAL PATH")
+            #         path_finished=True
+            #     else:
+            #         path_found=False      
 
 
 
@@ -668,6 +695,8 @@ class App:
         self.selectedModel="paper"
         self.selectRoboflow=OptionMenu(topButtonsFrame, selection, *options,command=lambda selected_option=selection.get(): self.selectRobo(selected_option))
         self.selectRoboflow.pack(side=RIGHT)
+
+
 
 
 
