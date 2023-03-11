@@ -21,9 +21,10 @@ ack_msg=""
 boat_ready_msg=""
 path_finished=False
 boat_heading=""
-simultaion_mode=True
+simultaion_mode=True 
 usv_simulation = False
 start_path_planning = False
+ignore_water = False
 
 
 
@@ -230,7 +231,10 @@ def motion_recognitionThread(option,mode):
 
         # drawing circles        
         for i in pointGrid:
-            if(mask[i[1],i[0]].sum()==0):
+            if(mask[i[1],i[0]].sum()==0 and not ignore_water):
+                valid_circles.append((i[0],i[1]))
+                cv2.circle(img2, (i[0],i[1]), 10, (0,0,255), 2)
+            elif ignore_water:
                 valid_circles.append((i[0],i[1]))
                 cv2.circle(img2, (i[0],i[1]), 10, (0,0,255), 2)
 
@@ -613,6 +617,14 @@ class App:
         print(f"Selected option: {selected_option}")
         app.selectedModel=selected_option
         # do something with selected_option here
+    def toggle_start_path():
+        global start_path_planning
+        start_path_planning = not start_path_planning
+
+    def toggle_ignore_water():
+        global ignore_water
+        ignore_water = not ignore_water
+        
         
         
         
@@ -697,6 +709,11 @@ class App:
         self.selectRoboflow.pack(side=RIGHT)
 
 
+        self.start_path_planning_checkbox = Checkbutton(topButtonsFrame, text="Start Path Planning", command=App.toggle_start_path)
+        self.start_path_planning_checkbox.pack(side=RIGHT)
+
+        self.ignore_water_checkbox = Checkbutton(topButtonsFrame, text="Ignore Water", command=App.toggle_ignore_water)
+        self.ignore_water_checkbox.pack(side=RIGHT)
 
 
 
