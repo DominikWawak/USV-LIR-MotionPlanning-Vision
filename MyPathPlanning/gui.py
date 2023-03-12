@@ -21,10 +21,11 @@ ack_msg=""
 boat_ready_msg=""
 path_finished=False
 boat_heading=""
-simultaion_mode=True 
+simultaion_mode=False
 usv_simulation = False
 start_path_planning = False
 ignore_water = False
+local_model=False
 
 
 
@@ -100,6 +101,14 @@ def motion_recognitionThread(option,mode):
         rf = Roboflow(api_key="vcq6WDRWgu2bLiH4FVT5")
         project = rf.workspace().project("usv_lir_search_and_rescue")
         model = project.version(3).model
+    elif(mode=="LOCAL-paper-version1"):
+        # load model
+        global local_model
+        local_model=True
+        net = cv2.dnn.readNetFromONNX('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/MyPathPlanning/YOLO_Files/yolov5/runs/train/exp3/weights/best.onnx')
+        file=open('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/MyPathPlanning/YOLO_Files/yolov5/usvlirpaper-2/coco.txt','r')
+        classes=file.read().split('\n')
+        print(classes)
 
 
     if(option==1):
@@ -156,11 +165,12 @@ def motion_recognitionThread(option,mode):
     # Loop
     # 
 
+
     # Create the person simulated image
     # load the overlay image. size should be smaller than video frame size
-    imgPerson = cv2.imread('MyPathPlanning_ColourDetection_Rocognition/res/pp1.png', cv2.IMREAD_UNCHANGED)
+    imgPerson = cv2.imread('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/MyPathPlanning/res/pp1.png', cv2.IMREAD_UNCHANGED)
     #imgPerson = cv2.resize(imgPerson,(50,50))
-    imgUSV = cv2.imread('MyPathPlanning_ColourDetection_Rocognition/res/usv.png', cv2.IMREAD_UNCHANGED)
+    imgUSV = cv2.imread('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/MyPathPlanning/res/usv.png', cv2.IMREAD_UNCHANGED)
     imgUSV = cv2.resize(imgUSV,(250,450))
 
     # Get Image dimensions
@@ -183,8 +193,12 @@ def motion_recognitionThread(option,mode):
         
         success,img = video.read()
         success,img2 = video.read()
+
+        if img is None:
+            break
         if img is not None and img.size > 0:
             image = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
+
 
 
         # array for valid circle points
@@ -227,7 +241,7 @@ def motion_recognitionThread(option,mode):
                 #print(area)
                 x,y,w,h = cv2.boundingRect(cnt)
                 big_countours.append(cnt)
-                cv2.rectangle(mask, (x-20,y-20),(x+w+20,y+h+20), (255,255,255),-1)
+                cv2.rectangle(mask, (x-40,y-40),(x+w+40,y+h+40), (255,255,255),-1)
 
         # drawing circles        
         for i in pointGrid:
@@ -237,17 +251,6 @@ def motion_recognitionThread(option,mode):
             elif ignore_water:
                 valid_circles.append((i[0],i[1]))
                 cv2.circle(img2, (i[0],i[1]), 10, (0,0,255), 2)
-
-        # if(not path_found):
-        #     # drawing circles        
-        #     for i in pointGrid:
-        #         if(mask[i[1],i[0]].sum()==0):
-        #             valid_circles.append((i[0],i[1]))
-        #             cv2.circle(img2, (i[0],i[1]), 10, (0,0,255), 2)
-        # else:
-        #     for i in valid_circles_path_found:
-        #         cv2.circle(img2, (i[0],i[1]), 10, (0,0,255), 2)
-
 
         #****************************************************************************************************
         #*************COLOR DETECTION_END************************************************************************
@@ -259,69 +262,139 @@ def motion_recognitionThread(option,mode):
 
 
         if start_path_planning:
-            prediction=model.predict(img, confidence=40, overlap=30).json()
 
-            bounding_box=None
-            for i in range(0,3,1): 
-                try:
+            if local_model:
+                blob=cv2.dnn.blobFromImage(img,1/255,(640,640),[0,0,0],swapRB=True,crop=False)
+                net.setInput(blob)
+                detections = net.forward()[0]
+                # predicts 25200 boxes or detections, each box has 8 entries
+                #print(detections.shape)
 
-                    # print(prediction['predictions'][i]['class'])
+                #cx cy w h conf class 8 class scores
+                # class+ids, confidence, bounding box
 
+                classes_ids = []
+                confidences = []
+                boxes = []
+                rows = detections.shape[0]
 
-                    bounding_box=prediction['predictions'][i]
-                    x0 = bounding_box['x'] - bounding_box['width'] / 2
-                    x1 = bounding_box['x'] + bounding_box['width'] / 2
-                    y0 = bounding_box['y'] - bounding_box['height'] / 2
-                    y1 = bounding_box['y'] + bounding_box['height'] / 2
+                #scale
+                frame_width, frame_height = img.shape[1], img.shape[0]
+                x_scale = frame_width / 640
+                y_scale = frame_height / 640
 
-                    start_point = (int(x0), int(y0))
-                    end_point = (int(x1), int(y1))
-                    cv2.rectangle(img, start_point, end_point, color=(0,0,0), thickness=2)
+                for i in range(rows):
+                    row=detections[i]
+                    confidence=row[4]
+                    #threshold
+                    if confidence > 0.5:
+                        classes_score=row[5:]
+                        ind=np.argmax(classes_score)
+                        if classes_score[ind] > 0.5:
+                            classes_ids.append(ind)
+                            confidences.append(float(confidence))
+                            x_center,y_center,width,height=row[0:4]
+                            x=int((x_center-width/2)*x_scale)
+                            y=int((y_center-height/2)*y_scale)
+                            width=int(width*x_scale)
+                            height=int(height*y_scale)
+                            boxes.append([x,y,width,height])
+                
+                #remove extra boxes
+                indices= cv2.dnn.NMSBoxes(boxes,confidences,0.5,0.4)
+                
+                for i in indices:
+                    x,y,width,height=boxes[i]
+                    label=classes[classes_ids[i]]
+                    conf=confidences[i]
+                    text=label+":"+str(round(conf,2))
+                    cv2.rectangle(img,(x,y),(x+width,y+height),(0,255,0),2)
+                    cv2.putText(img,text,(x,y-10),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,255,0),2)
 
-                    cv2.putText(
-                    img, # PIL.Image object to place text on
-                    bounding_box['class'],#text to place on image
-                    (int(x0), int(y0)+10),#location of text in pixels
-                    fontFace = cv2.FONT_HERSHEY_SIMPLEX, #text font
-                    fontScale = 0.6,#font scale
-                    color = (255, 255, 255),#text color in RGB
-                    thickness=2#thickness/"weight" of text       
-                    )
-                except:
-                    pass
-                    # print("Nothing found")
-
-                if(bounding_box):
-                    if(bounding_box['class']=="usv" or bounding_box['class']=="2" or bounding_box['class']=="4"  ):
-                        # for cnt in big_countours:
-                        #     if( cv2.pointPolygonTest(cnt,(bounding_box['x'],bounding_box['y']),False)==1):
-                        #         usv_contour=cnt
-                        #         break
-                        # x,y,w,h = cv2.boundingRect(usv_contour)
-                        
-                        # startPoint=(int(x+w/2),int(y+h/2))
-                            
-                        startPoint=(int(x0+bounding_box['width']/2), int(y0+bounding_box['height'] / 2))
-                        cv2.circle(img2, startPoint, 10, (0,255,0), -1)
-                        
-                            
-                    if(bounding_box['class']=="person" or bounding_box['class']=="0"):
-                        # for cnt in big_countours:
-                        #     if( cv2.pointPolygonTest(cnt,(bounding_box['x'],bounding_box['y']),False)==1):
-                        #         person_contour=cnt
-                        #         break
-
-                        # x,y,w,h = cv2.boundingRect(person_contour)  
-                        # endPoint=(int(x+w/2),int(y+h/2))
-                        endPoint=(int(x0+bounding_box['width']/2), int(y0+bounding_box['height'] / 2))
+                    if label=="person":
+                        endPoint=(int(x+width/2),int(y+height/2))
                         cv2.circle(img2, endPoint, 10, (0,255,0), -1)
 
+                    if label=="usv":
+                        startPoint=(int(x+width/2),int(y+height/2))
+                        cv2.circle(img2, startPoint, 10, (0,255,0), -1)
+
                     if startPoint != () and endPoint != ():
-                        # Detect if boat is close to the person 
-                        if(abs(startPoint[0]-endPoint[0])<=500 and abs(startPoint[1]-endPoint[1])<=200):
-                            print("Boat is close to the person")
-                            client.publish("test/res", "stop1")
-                            path_finished=True
+                            # Detect if boat is close to the person 
+                            if(abs(startPoint[0]-endPoint[0])<=100 and abs(startPoint[1]-endPoint[1])<=100):
+                                print("Boat is close to the person")
+                                client.publish("test/res", "stop1")
+                                path_finished=True
+
+
+
+
+
+            else:
+
+                prediction=model.predict(img, confidence=40, overlap=30).json()
+
+                bounding_box=None
+                for i in range(0,3,1): 
+                    try:
+
+                        # print(prediction['predictions'][i]['class'])
+
+
+                        bounding_box=prediction['predictions'][i]
+                        x0 = bounding_box['x'] - bounding_box['width'] / 2
+                        x1 = bounding_box['x'] + bounding_box['width'] / 2
+                        y0 = bounding_box['y'] - bounding_box['height'] / 2
+                        y1 = bounding_box['y'] + bounding_box['height'] / 2
+
+                        start_point = (int(x0), int(y0))
+                        end_point = (int(x1), int(y1))
+                        cv2.rectangle(img, start_point, end_point, color=(0,0,0), thickness=2)
+
+                        cv2.putText(
+                        img, # PIL.Image object to place text on
+                        bounding_box['class'],#text to place on image
+                        (int(x0), int(y0)+10),#location of text in pixels
+                        fontFace = cv2.FONT_HERSHEY_SIMPLEX, #text font
+                        fontScale = 0.6,#font scale
+                        color = (255, 255, 255),#text color in RGB
+                        thickness=2#thickness/"weight" of text       
+                        )
+                    except:
+                        pass
+                        # print("Nothing found")
+
+                    if(bounding_box):
+                        if(bounding_box['class']=="usv" or bounding_box['class']=="2" or bounding_box['class']=="4"  ):
+                            # for cnt in big_countours:
+                            #     if( cv2.pointPolygonTest(cnt,(bounding_box['x'],bounding_box['y']),False)==1):
+                            #         usv_contour=cnt
+                            #         break
+                            # x,y,w,h = cv2.boundingRect(usv_contour)
+                            
+                            # startPoint=(int(x+w/2),int(y+h/2))
+                                
+                            startPoint=(int(x0+bounding_box['width']/2), int(y0+bounding_box['height'] / 2))
+                            cv2.circle(img2, startPoint, 10, (0,255,0), -1)
+                            
+                                
+                        if(bounding_box['class']=="person" or bounding_box['class']=="0"):
+                            # for cnt in big_countours:
+                            #     if( cv2.pointPolygonTest(cnt,(bounding_box['x'],bounding_box['y']),False)==1):
+                            #         person_contour=cnt
+                            #         break
+
+                            # x,y,w,h = cv2.boundingRect(person_contour)  
+                            # endPoint=(int(x+w/2),int(y+h/2))
+                            endPoint=(int(x0+bounding_box['width']/2), int(y0+bounding_box['height'] / 2))
+                            cv2.circle(img2, endPoint, 10, (0,255,0), -1)
+
+                        if startPoint != () and endPoint != ():
+                            # Detect if boat is close to the person 
+                            if(abs(startPoint[0]-endPoint[0])<=500 and abs(startPoint[1]-endPoint[1])<=200):
+                                print("Boat is close to the person")
+                                client.publish("test/res", "stop1")
+                                path_finished=True
 
                         
 
@@ -357,11 +430,12 @@ def motion_recognitionThread(option,mode):
                         valid_circles.append(endPoint)
                         validPointCount=0
 
-                        if(usv_width_pixels==0):
-                            usv_width_pixels=abs(start_point[0]-end_point[0])
-                            print("USV WIDTH IN PIXELS",usv_width_pixels)
-                            pixels_per_cm=usv_width_pixels/usv_width_cm
-                            print("PIXELS PER CM",pixels_per_cm)
+                        if not local_model:
+                            if(usv_width_pixels==0):
+                                usv_width_pixels=abs(start_point[0]-end_point[0])
+                                print("USV WIDTH IN PIXELS",usv_width_pixels)
+                                pixels_per_cm=usv_width_pixels/usv_width_cm
+                                print("PIXELS PER CM",pixels_per_cm)
                     
 
                         # Create a graph
@@ -388,6 +462,8 @@ def motion_recognitionThread(option,mode):
                         print("nearest_dist",nearest_dist,"nearest_dist_end",nearest_dist_end)
                         print("start_nearest",start_nearest,"end_nearest",end_nearest,"startPoint",startPoint,"endPoint",endPoint)
 
+
+                        # Add edges between nodes outside and the box 
 
                         for circ in valid_circles:
                             distance_toStart = sqrt((startPoint[0] - circ[0])**2 + (startPoint[1] - circ[1])**2)
@@ -422,11 +498,13 @@ def motion_recognitionThread(option,mode):
 
                             print("Shortest PATH",shortest_path)
                             print("Shortest PATH DISTANCE",distance)
-                            print("Shortest PATH DISTANCE IN CM",distance/pixels_per_cm)
+                            if not local_model:
+                                print("Shortest PATH DISTANCE IN CM",distance/pixels_per_cm)
 
                             for i in range(len(shortest_path)):
                                 if(i+1<len(shortest_path)):
                                     cv2.line(img2, (shortest_path[i]), (shortest_path[i+1]), (0, 255, 0), thickness=3, lineType=8)
+                                    cv2.line(img, (shortest_path[i]), (shortest_path[i+1]), (0, 255, 0), thickness=3, lineType=8)
                                     distances.append(sqrt((shortest_path[i][0]-shortest_path[i+1][0])**2 + (shortest_path[i][1]-shortest_path[i+1][1])**2))
                                     # # Directions
                                     # if(shortest_path[i][0]<shortest_path[i+1][0] and shortest_path[i][1]<shortest_path[i+1][1]):
@@ -494,7 +572,8 @@ def motion_recognitionThread(option,mode):
                                 
                         
 
-                        except:
+                        except Exception as e:
+                            print("No Path",e)
                             pass
                             #print("no Path")
                         
@@ -505,53 +584,6 @@ def motion_recognitionThread(option,mode):
                     endPoint_prev=endPoint
                     validPointCount=0
                 
-            
-
-                    #client.publish("test/res", '{"data":'+directions[i]+' _ '+str(round(distances[i]/pixels_per_cm))+',"ispublic":false}')
-
-
-
-
-            
-            # # if(path_found==True and startPoint!=() and endPoint!=0):
-            # if(path_found==True and not path_finished):
-            #     global ack_msg
-            #     print("Distance",distances)
-    
-            
-            #     for i in range(len(shortest_path)):
-            #             if(i+1<len(shortest_path)):
-            #                 # cv2.line(img2, (shortest_path[i][0]+ point_drift[0],shortest_path[i][1]+point_drift[1]), (shortest_path[i+1][0]+ point_drift[0],shortest_path[i+1][1]+point_drift[1]), (0, 255, 0), thickness=3, lineType=8)
-            #                   cv2.line(img2, (shortest_path[i]), (shortest_path[i+1]), (0, 255, 0), thickness=3, lineType=8) 
-
-            #     ack=0
-            #     for i in range(2):
-            #         if(len(directions)>0):
-            #             print("sending driection",directions[i])
-            #             client.publish("test/res", '{"data":'+directions[i]+' _ '+str(round(distances[i]/pixels_per_cm))+',"ispublic":false}')
-            #             while(ack==0):
-            #                 #ack=recievedMessage
-            #                 for i in range(len(shortest_path)):
-            #                   if(i+1<len(shortest_path)):
-            #                         # cv2.line(img2, (shortest_path[i][0]+ point_drift[0],shortest_path[i][1]+point_drift[1]), (shortest_path[i+1][0]+ point_drift[0],shortest_path[i+1][1]+point_drift[1]), (0, 255, 0), thickness=3, lineType=8)
-            #                         cv2.line(img2, (shortest_path[i]), (shortest_path[i+1]), (0, 255, 0), thickness=3, lineType=8) 
-            #                 print("waiting for ack",ack_msg)
-            #                 if(ack_msg[1:-1]=="ack"):
-            #                     ack=1
-            #                     ack_msg=""
-            #                 time.sleep(3)
-                        
-            #             print("ack recieved",ack)
-
-            #         ack=0
-            #     if(len(directions)<=2):
-            #         print("FINAL PATH")
-            #         path_finished=True
-            #     else:
-            #         path_found=False      
-
-
-
         app.show_frame(mask,img,img2)
         
     
@@ -701,7 +733,7 @@ class App:
         self.stream3Text.pack(side=LEFT)
 
 
-        options = ["paper", "realLife","search_and_rescue"]
+        options = ["paper", "realLife","search_and_rescue","LOCAL-paper-version1"]
         selection=StringVar()
         selection.set("paper")
         self.selectedModel="paper"
