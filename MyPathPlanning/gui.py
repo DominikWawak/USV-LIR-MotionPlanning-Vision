@@ -79,7 +79,7 @@ tmqtt.start()
 
 
 def motion_recognitionThread(option,mode):
-
+    global local_model
     # key,projectName,version
     # rf = Roboflow(key)
     # project = rf.workspace().project(projectName)
@@ -103,10 +103,18 @@ def motion_recognitionThread(option,mode):
         model = project.version(3).model
     elif(mode=="LOCAL-paper-version1"):
         # load model
-        global local_model
+       
         local_model=True
         net = cv2.dnn.readNetFromONNX('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/MyPathPlanning/YOLO_Files/yolov5/runs/train/exp3/weights/best.onnx')
         file=open('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/MyPathPlanning/YOLO_Files/yolov5/usvlirpaper-2/coco.txt','r')
+        classes=file.read().split('\n')
+        print(classes)
+    elif(mode=="LOCAL-real-version1"):
+        # load model
+        
+        local_model=True
+        net = cv2.dnn.readNetFromONNX('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/MyPathPlanning/YoloFiles2/yolov5/runs/train/exp4/weights/best.onnx')
+        file=open('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/MyPathPlanning/YoloFiles2/yolov5/SEARCH_AND_RESCUE_SMALL_LOCAL-1/coco.txt','r')
         classes=file.read().split('\n')
         print(classes)
 
@@ -119,7 +127,11 @@ def motion_recognitionThread(option,mode):
         video = cv2.VideoCapture(fn)
     elif(option==3):
         url = app.stream3Text.get()
-        video=cap_from_youtube(url,'720p60')
+        if 'youtube' in url:
+            video=cap_from_youtube(url,'720p60')
+        else:
+            video = cv2.VideoCapture(url)
+            #http://192.168.45.159:6868/screen_stream.mjpeg
         # best = video.getbest(preftype="mp4")
         # video = cv2.VideoCapture(best.url)
         # TEST VIDEO FOR PERSON https://www.youtube.com/watch?v=5n7ZNLvegBo
@@ -733,7 +745,7 @@ class App:
         self.stream3Text.pack(side=LEFT)
 
 
-        options = ["paper", "realLife","search_and_rescue","LOCAL-paper-version1"]
+        options = ["paper", "realLife","search_and_rescue","LOCAL-paper-version1","LOCAL-real-version1"]
         selection=StringVar()
         selection.set("paper")
         self.selectedModel="paper"
