@@ -128,13 +128,14 @@ def motion_recognitionThread(option,mode):
     elif(option==3):
         url = app.stream3Text.get()
         if 'youtube' in url:
-            video=cap_from_youtube(url,'720p60')
+            video=cap_from_youtube(url)
         else:
             video = cv2.VideoCapture(url)
             #http://192.168.45.159:6868/screen_stream.mjpeg
         # best = video.getbest(preftype="mp4")
         # video = cv2.VideoCapture(best.url)
         # TEST VIDEO FOR PERSON https://www.youtube.com/watch?v=5n7ZNLvegBo
+        # TEST VIDEO KAYAK https://www.youtube.com/watch?v=KLmXxadpTtQ
 
     width=0
     height=0
