@@ -13,10 +13,12 @@ import time
 import threading
 from roboflow import Roboflow
 import math 
-import paho.mqtt.client as mqtt
 from pymavlink import mavutil
 import time 
 import json
+import serial
+
+ser = serial.Serial('/dev/tty.usbmodem1302', 115200)
 
 
 
@@ -24,62 +26,12 @@ ack_msg=""
 boat_ready_msg=""
 path_finished=False
 boat_heading=""
-simultaion_mode=False
+simultaion_mode=True
 usv_simulation = False
 start_path_planning = False
 ignore_water = False
 local_model=False
 
-
-
-
-#****************************************************************************************************
-#*************MQTT Setup************************************************************************
-
-# Callback when the connection to the broker is established
-def on_connect(client, userdata, flags, rc):
-    print("Connected with result code " + str(rc))
-    # Subscribe to a channel
-    client.subscribe("test/res")
-
-# Callback when a message is received
-def on_message(client, userdata, msg):
-    global ack_msg
-    print("Received message on channel " + msg.topic + ": " + str(msg.payload))
-    m_decode = str(msg.payload.decode("utf-8", "ignore"))
-    m_decode = m_decode.replace(",", ':')
-    print("data Received", m_decode.split(":")[1])
-    message_decoded = m_decode.split(":")[1]
-    print("message_decoded", message_decoded)
-    if(message_decoded=='"ack"'):
-        ack_msg=m_decode.split(":")[1]
-    elif(message_decoded=="boat_ready"):
-        boat_ready_msg=m_decode.split(":")[1]
-    elif(message_decoded=="N"):
-        boat_heading=m_decode.split(":")[1]
-
-# Create a new MQTT client
-client = mqtt.Client()
-client.on_connect = on_connect
-client.on_message = on_message
-
-# Connect to the Beebotte broker
-client.username_pw_set("9h1rq3Hf5cxTeQcb2yTYK3N6", "m33rs3IoJWxT9eX01hoxTLIDfLtq3EWN")
-client.connect("mqtt.beebotte.com", 1883, 60)
-
-
-# # Publish the payload to a channel
-# client.publish("test/res", 'Hello World')
-
-# Wait for incoming messages
-
-tmqtt=threading.Thread(target=client.loop_forever)
-tmqtt.start()
-print("Mqtt thread started")
-
-time.sleep(5)
-#****************************************************************************************************
-#*************MQTT Setup************************************************************************
 
 
 def getCompassFromBoat():
@@ -96,7 +48,8 @@ def getCompassFromBoat():
         msg = the_connection.recv_match(type='GLOBAL_POSITION_INT', blocking=True)
         #Print the compass value
         print("Global Position: %s" % int(msg.hdg/100))
-        client.publish("test/compass", int(msg.hdg/100))
+        ser.write(b'$GPS:'+str(int(msg.hdg/100))+',')
+        
         time.sleep(0.5)
 
 
@@ -353,11 +306,11 @@ def motion_recognitionThread(option,mode):
                     cv2.rectangle(img,(x,y),(x+width,y+height),(0,255,0),2)
                     cv2.putText(img,text,(x,y-10),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,255,0),2)
 
-                    if label=="person":
+                    if label=="person" or label=="0":
                         endPoint=(int(x+width/2),int(y+height/2))
                         cv2.circle(img2, endPoint, 10, (0,255,0), -1)
 
-                    if label=="usv":
+                    if label=="usv" or label=="6" :
                         startPoint=(int(x+width/2),int(y+height/2))
                         cv2.circle(img2, startPoint, 10, (0,255,0), -1)
 
@@ -365,7 +318,7 @@ def motion_recognitionThread(option,mode):
                             # Detect if boat is close to the person 
                             if(abs(startPoint[0]-endPoint[0])<=100 and abs(startPoint[1]-endPoint[1])<=100):
                                 print("Boat is close to the person")
-                                client.publish("test/res", "stop1")
+                                ser.write(b'$Direction:-1,')
                                 path_finished=True
 
 
@@ -435,7 +388,7 @@ def motion_recognitionThread(option,mode):
                             # Detect if boat is close to the person 
                             if(abs(startPoint[0]-endPoint[0])<=500 and abs(startPoint[1]-endPoint[1])<=200):
                                 print("Boat is close to the person")
-                                client.publish("test/res", "stop1")
+                                ser.write(b'$Direction:-1,')
                                 path_finished=True
 
                         
@@ -564,19 +517,19 @@ def motion_recognitionThread(option,mode):
                                     #     directions.append("Diagonal Up Left")
                                     if(shortest_path[i][0]<shortest_path[i+1][0] and shortest_path[i][1]==shortest_path[i+1][1]):
                                         print("Right")
-                                        directions.append("east")
+                                        directions.append(90)
                                         #directions.append("north")
                                     elif(shortest_path[i][0]>shortest_path[i+1][0] and shortest_path[i][1]==shortest_path[i+1][1]):
                                         print("Left")
-                                        directions.append("west")
+                                        directions.append(270)
                                         #directions.append("south")
                                     elif(shortest_path[i][0]==shortest_path[i+1][0] and shortest_path[i][1]<shortest_path[i+1][1]):
                                         print("Down")
-                                        directions.append("south")
+                                        directions.append(180)
                                         #directions.append("east")
                                     elif(shortest_path[i][0]==shortest_path[i+1][0] and shortest_path[i][1]>shortest_path[i+1][1]):
                                         print("Up")
-                                        directions.append("north")
+                                        directions.append(0)
                                         #directions.append("west")
                                     else:
                                         print("No Direction")   
@@ -586,24 +539,25 @@ def motion_recognitionThread(option,mode):
                             if(len(directions)>0):
                                 if(len(directions)==1):
                                     print("sending STOP")
-                                    client.publish("test/res", "stop1")
+                                    ser.write(b'$Direction:-1,')
                                 else:
                                     print("sending driection",directions[0])
-                                    client.publish("test/res", directions[0])
+                                    ser.write(b'$Direction:'+str(directions[0])+',')
+                                   
 
                                     if simultaion_mode and usv_simulation:
-                                        if(directions[0]=="north"):
+                                        if(directions[0]==0):
                                             #move boat image up 50 pixels in the image and rotate image
                                             deltaYUSV=deltaYUSV+50
-                                        elif(directions[0]=="south"):
+                                        elif(directions[0]==180):
                                             #imgUSV = cv2.rotate(imgUSV, cv2.ROTATE_180)
                                             #imgUSV_height, imgUSV_width, _ = imgUSV.shape
                                             deltaYUSV=deltaYUSV-50
-                                        elif(directions[0]=="east"):
+                                        elif(directions[0]==90):
                                             #imgUSV= cv2.rotate(imgUSV, cv2.ROTATE_90_CLOCKWISE)
                                             deltaXUSV=deltaXUSV-50
                                             imgUSV_height, imgUSV_width, _ = imgUSV.shape
-                                        elif(directions[0]=="west"):
+                                        elif(directions[0]==270):
                                             #imgUSV= cv2.rotate(imgUSV, cv2.ROTATE_90_COUNTERCLOCKWISE)
                                             deltaXUSV=deltaXUSV+50
                                             #imgUSV_height, imgUSV_width, _ = imgUSV.shape
