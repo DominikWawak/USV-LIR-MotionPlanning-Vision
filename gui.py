@@ -134,16 +134,16 @@ def motion_recognitionThread(option,mode):
         # load model
        
         local_model=True
-        net = cv2.dnn.readNetFromONNX('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/YOLO_Files/yolov5/runs/train/exp3/weights/best.onnx')
-        file=open('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/YOLO_Files/yolov5/usvlirpaper-2/coco.txt','r')
+        net = cv2.dnn.readNetFromONNX('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/YOLO_PaperModel/yolov5/runs/train/exp3/weights/best.onnx')
+        file=open('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/YOLO_PaperModel/yolov5/usvlirpaper-2/coco.txt','r')
         classes=file.read().split('\n')
         print(classes)
     elif(mode=="LOCAL-real-version1"):
         # load model
         
         local_model=True
-        net = cv2.dnn.readNetFromONNX('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/YoloFiles2/yolov5/runs/train/exp4/weights/best.onnx')
-        file=open('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/YoloFiles2/yolov5/SEARCH_AND_RESCUE_SMALL_LOCAL-1/coco.txt','r')
+        net = cv2.dnn.readNetFromONNX('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/YOLO_RealModel/yolov5/runs/train/exp4/weights/best.onnx')
+        file=open('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/YOLO_RealModel/yolov5/SEARCH_AND_RESCUE_SMALL_LOCAL-1/coco.txt','r')
         classes=file.read().split('\n')
         print(classes)
 
