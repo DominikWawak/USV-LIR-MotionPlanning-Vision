@@ -85,16 +85,16 @@ def motion_recognitionThread(option,mode):
         # load model
        
         local_model=True
-        net = cv2.dnn.readNetFromONNX('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/MyPathPlanning/YOLO_Files/yolov5/runs/train/exp3/weights/best.onnx')
-        file=open('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/MyPathPlanning/YOLO_Files/yolov5/usvlirpaper-2/coco.txt','r')
+        net = cv2.dnn.readNetFromONNX('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/YOLO_Files/yolov5/runs/train/exp3/weights/best.onnx')
+        file=open('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/YOLO_Files/yolov5/usvlirpaper-2/coco.txt','r')
         classes=file.read().split('\n')
         print(classes)
     elif(mode=="LOCAL-real-version1"):
         # load model
         
         local_model=True
-        net = cv2.dnn.readNetFromONNX('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/MyPathPlanning/YoloFiles2/yolov5/runs/train/exp4/weights/best.onnx')
-        file=open('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/MyPathPlanning/YoloFiles2/yolov5/SEARCH_AND_RESCUE_SMALL_LOCAL-1/coco.txt','r')
+        net = cv2.dnn.readNetFromONNX('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/YoloFiles2/yolov5/runs/train/exp4/weights/best.onnx')
+        file=open('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/YoloFiles2/yolov5/SEARCH_AND_RESCUE_SMALL_LOCAL-1/coco.txt','r')
         classes=file.read().split('\n')
         print(classes)
 
@@ -161,9 +161,9 @@ def motion_recognitionThread(option,mode):
 
     # Create the person simulated image
     # load the overlay image. size should be smaller than video frame size
-    imgPerson = cv2.imread('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/MyPathPlanning/res/pp1.png', cv2.IMREAD_UNCHANGED)
+    imgPerson = cv2.imread('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/res/pp1.png', cv2.IMREAD_UNCHANGED)
     #imgPerson = cv2.resize(imgPerson,(50,50))
-    imgUSV = cv2.imread('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/MyPathPlanning/res/usv.png', cv2.IMREAD_UNCHANGED)
+    imgUSV = cv2.imread('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/res/usv.png', cv2.IMREAD_UNCHANGED)
     imgUSV = cv2.resize(imgUSV,(250,450))
 
     # Get Image dimensions
