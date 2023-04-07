@@ -1,40 +1,36 @@
-<p align='center'>
-<img src="./res/lirlogobg.png" alt="LIR" width=50%/>  
+<<p align='center'>
+<img src="./res/lirlogobg.png" alt="LIR" width=30%/>  
 </p>
 
-<style>
-  p {
-    text-align: center;
-  }
-</style>
-
 <h1 align='center'>
-  USV LIR 2.0 - Path Planning for Maritime Search and Rescue applications
+USV LIR 2.0 - Path Planning for Maritime Search and Rescue applications
 </h1>
-<p>
+<p align='center'>
   <img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/DominikWawak/USV-LIR-MotionPlanning-Vision?style=for-the-badge">
   <img alt="GitHub forks" src="https://img.shields.io/github/forks/DominikWawak/USV-LIR-MotionPlanning-Vision?style=for-the-badge">
   <img alt="GitHub watchers" src="https://img.shields.io/github/watchers/DominikWawak/USV-LIR-MotionPlanning-Vision?style=for-the-badge">
-</p>
-<p>
-  <h3>Real floating objects</h3>
+  <br>
+  <p align='center'>Real Search and rescue version</p>
+  <p align='center'>
   <a href="https://universe.roboflow.com/usvsetu/usv_lir_search_and_rescue">
-    <img src="https://app.roboflow.com/images/download-dataset-badge.svg"></img>
+      <img src="https://app.roboflow.com/images/download-dataset-badge.svg"></img>
   </a>
   <a href="https://universe.roboflow.com/usvsetu/usv_lir_search_and_rescue/model/">
-    <img src="https://app.roboflow.com/images/try-model-badge.svg"></img>
+      <img src="https://app.roboflow.com/images/try-model-badge.svg"></img>
   </a>
 </p>
-<br>
-<p>
-  <h3>Paper model floating objects</h3>
-  <a href="https://universe.roboflow.com/usvsetu/usvlirpaper">
-    <img src="https://app.roboflow.com/images/download-dataset-badge.svg"></img>
+  <br>
+   <p align='center'>Paper model version</p>
+  <p align='center'>
+  <a href="https://universe.roboflow.com/usvsetu/usv_lir_search_and_rescue">
+      <img src="https://app.roboflow.com/images/download-dataset-badge.svg"></img>
   </a>
-  <a href="https://universe.roboflow.com/usvsetu/usvlirpaper/model/">
-    <img src="https://app.roboflow.com/images/try-model-badge.svg"></img>
+  <a href="https://universe.roboflow.com/usvsetu/usv_lir_search_and_rescue/model/">
+      <img src="https://app.roboflow.com/images/try-model-badge.svg"></img>
   </a>
 </p>
+
+
 
 # Project Overview
 
@@ -45,11 +41,13 @@
 
 ### My focus of this project is maritime search and rescue. I am using the USV LIR 2.0 to detect people with risk of drowning in the water and perform path planning to navigate to the person. The object detection is achieved using object detecion training models with tools like tensorflow and the roboflow API and the path planning is achieved using python and the fusion of image processing methods. I also developed a simple GUI to allow the user to select the video stream they want to use, and to select the model they want to use for object detection. The GUI also has image processing functionality to a certain extent allowinf for realtime adjustements to be made to improve the path planning process. I hope that my project will be useful to others who are interested in developing similar projects and make it easier for them to get started having the basic set up at hand. -->
 
-### The USV LIR 2.0 is an unmanned surface vehicle designed to serve as an open research platform. It is named after the Irish legend Children of Lir. This project showcases engineering to school students through a mission design competition and is being used for marine research by biologists from Catholic University of Valencia. The unique aspect of this project is the technology underneath. The master controller, Pixhawk 3, controls the boat with the help of GPS and is connected to a laptop through telemetry communication, while QGround Control is the mission planning software tool used to configure the boat. The microbit interface, a small microprocessor programmed with virtual puzzle blocks, is a standout feature that makes this platform accessible to anyone, regardless of their technical background. My primary focus is maritime search and rescue, using object detection training models and image processing methods to detect and rescue people in risk of drowning. I developed GUI to provide ease of use for future use. The path planning for the boat is done with common motion planning algorithms like Dijkstra and the communication is done through MQTT.
+### The USV LIR 2.0 is an unmanned surface vehicle designed to serve as an open research platform. It is named after the Irish legend Children of Lir. This project showcases engineering to school students through a mission design competition and is being used for marine research by biologists from Catholic University of Valencia. The unique aspect of this project is the technology underneath. The master controller, Pixhawk 3, controls the boat with the help of GPS and is connected to a laptop through telemetry communication, while QGround Control is the mission planning software tool used to configure the boat. The microbit interface, a small microprocessor programmed with virtual puzzle blocks, is a standout feature that makes this platform accessible to anyone, regardless of their technical background. My primary focus is maritime search and rescue, using object detection training models and image processing methods to detect and rescue people in risk of drowning. I developed GUI to provide ease of use for future use. The path planning for the boat is done with common motion planning algorithms like Dijkstra and the communication is done through MQTT as well as the pyMavLink library allowing for communication between the pixhawk and a laptop feeding to a microbit network.
 
 
 # Technologies 
-### Python, tensorflow, Pixhawk, Microbit, MQTT, AWS, Roboflow, OpenCV, QGroundControl
+### Python, tensorflow, Pixhawk, Microbit, MQTT, AWS, Roboflow, OpenCV, QGroundControl, RoboFlow, YoloV5 and more...
+
+<br>
 
 # Repository Overview
 <!-- ### In this repository you will find two folders: MyPathPlanning folder and TFODCourseYT
@@ -66,11 +64,6 @@
 ## TFODCourseYT folder
 #### The `TFODCourseYT` folder contains materials from Nicholas Renotte's YouTube course on object detection and recognition. Nicholas is a well-known YouTuber in the field, and his course helped me to learn about training models from scratch, engineering them, and evaluating their performance. In this folder, you'll find some of my scripts and the models I've trained on my local machine.  -->
 
-#### If you're interested in learning more about object detection and recognition, I highly recommend checking out Nicholas's course [here](Link to course).
-
-
-# USV LIR 2.0 Search and Rescue
-<img title="USV LIR 2.0" alt="USV LIR 2.0" src="res/logo2.png" width="400">  
 
 ## Overview
 
@@ -287,6 +280,38 @@ It also has 6 Hue Saturation Value sliders that allow you to adjust the HSV valu
 Idea for this is to be quickly able to put in a url from a drone sream and have it process the images and send commands to the drone. -->
 
 
+
+#### If you're interested in learning more about object detection and recognition, I highly recommend checking out Nicholas's course [here](Link to course).
+
+
+
+<h3>Common Errors</h3>
+
+<details><summary> <b>Expand</b> </summary>
+  <ul>
+    <li>
+    This project wouldn't possible without amazing & free RoboFlow <a href="https://roboflow.com/annotate">annotation tools</a> , open-source <a href="https://universe.roboflow.com/">datasets</a>, quick & easy <a href="https://roboflow.com/deploy">deployement</a> and high-level <a href="https://blog.roboflow.com/">blog posts</a></li>
+  <li>Supervisor</li>
+  <li>Applied Robotics Lab Team</li>
+  <li>South East Technological University</li>
+  </ul>
+</details>
+
+<br>
+
+<h3>Future Developments</h3>
+
+<details><summary> <b>Expand</b> </summary>
+  <ul>
+    <li>
+    This project wouldn't possible without amazing & free RoboFlow <a href="https://roboflow.com/annotate">annotation tools</a> , open-source <a href="https://universe.roboflow.com/">datasets</a>, quick & easy <a href="https://roboflow.com/deploy">deployement</a> and high-level <a href="https://blog.roboflow.com/">blog posts</a></li>
+  <li>Supervisor</li>
+  <li>Applied Robotics Lab Team</li>
+  <li>South East Technological University</li>
+  </ul>
+</details>
+
+<br>
 <h3>Acknowledgement</h3>
 
 <details><summary> <b>Expand</b> </summary>
