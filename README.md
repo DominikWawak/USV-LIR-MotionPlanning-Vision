@@ -1,7 +1,40 @@
-# USV LIR 2.0 - Path Planning for Maritime Search and Rescue applications
+<p align='center'>
+<img src="./res/lirlogobg.png" alt="LIR" width=50%/>  
+</p>
 
+<style>
+  p {
+    text-align: center;
+  }
+</style>
 
-<img src="MyPathPlanning_ColourDetection_Rocognition/res/LIR.png" alt="LIR" />  
+<h1 align='center'>
+  USV LIR 2.0 - Path Planning for Maritime Search and Rescue applications
+</h1>
+<p>
+  <img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/DominikWawak/USV-LIR-MotionPlanning-Vision?style=for-the-badge">
+  <img alt="GitHub forks" src="https://img.shields.io/github/forks/DominikWawak/USV-LIR-MotionPlanning-Vision?style=for-the-badge">
+  <img alt="GitHub watchers" src="https://img.shields.io/github/watchers/DominikWawak/USV-LIR-MotionPlanning-Vision?style=for-the-badge">
+</p>
+<p>
+  <h3>Real floating objects</h3>
+  <a href="https://universe.roboflow.com/usvsetu/usv_lir_search_and_rescue">
+    <img src="https://app.roboflow.com/images/download-dataset-badge.svg"></img>
+  </a>
+  <a href="https://universe.roboflow.com/usvsetu/usv_lir_search_and_rescue/model/">
+    <img src="https://app.roboflow.com/images/try-model-badge.svg"></img>
+  </a>
+</p>
+<br>
+<p>
+  <h3>Paper model floating objects</h3>
+  <a href="https://universe.roboflow.com/usvsetu/usvlirpaper">
+    <img src="https://app.roboflow.com/images/download-dataset-badge.svg"></img>
+  </a>
+  <a href="https://universe.roboflow.com/usvsetu/usvlirpaper/model/">
+    <img src="https://app.roboflow.com/images/try-model-badge.svg"></img>
+  </a>
+</p>
 
 # Project Overview
 
@@ -19,7 +52,7 @@
 ### Python, tensorflow, Pixhawk, Microbit, MQTT, AWS, Roboflow, OpenCV, QGroundControl
 
 # Repository Overview
-### In this repository you will find two folders: MyPathPlanning folder and TFODCourseYT
+<!-- ### In this repository you will find two folders: MyPathPlanning folder and TFODCourseYT
 
 <br>
 <br>
@@ -31,7 +64,7 @@
 <br>
 
 ## TFODCourseYT folder
-#### The `TFODCourseYT` folder contains materials from Nicholas Renotte's YouTube course on object detection and recognition. Nicholas is a well-known YouTuber in the field, and his course helped me to learn about training models from scratch, engineering them, and evaluating their performance. In this folder, you'll find some of my scripts and the models I've trained on my local machine. 
+#### The `TFODCourseYT` folder contains materials from Nicholas Renotte's YouTube course on object detection and recognition. Nicholas is a well-known YouTuber in the field, and his course helped me to learn about training models from scratch, engineering them, and evaluating their performance. In this folder, you'll find some of my scripts and the models I've trained on my local machine.  -->
 
 #### If you're interested in learning more about object detection and recognition, I highly recommend checking out Nicholas's course [here](Link to course).
 
@@ -70,7 +103,7 @@ pip install MODULENAME
 
 If you are running one of my files and you get a "module not found error" the usual fix would be to install the module with the above command.
 
-
+<!-- 
 ## Color Detection:
 
 The color detection is achieved using the mask function in OpenCV. It uses Hue, Saturation, and Value to determine a lower and upper limit for filtering a specific color. The filtered image is then shown in black and white. The image below will help with determining these values.
@@ -251,4 +284,17 @@ This is a helper python graphical user interface that will allow you to either u
 
 It also has 6 Hue Saturation Value sliders that allow you to adjust the HSV values of the water. This is useful if the water is not a uniform color. 
 
-Idea for this is to be quickly able to put in a url from a drone sream and have it process the images and send commands to the drone.
+Idea for this is to be quickly able to put in a url from a drone sream and have it process the images and send commands to the drone. -->
+
+
+<h3>Acknowledgement</h3>
+
+<details><summary> <b>Expand</b> </summary>
+  <ul>
+    <li>
+    This project wouldn't possible without amazing & free RoboFlow <a href="https://roboflow.com/annotate">annotation tools</a> , open-source <a href="https://universe.roboflow.com/">datasets</a>, quick & easy <a href="https://roboflow.com/deploy">deployement</a> and high-level <a href="https://blog.roboflow.com/">blog posts</a></li>
+  <li>Supervisor</li>
+  <li>Applied Robotics Lab Team</li>
+  <li>South East Technological University</li>
+  </ul>
+</details>
