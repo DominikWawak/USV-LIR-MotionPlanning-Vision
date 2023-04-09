@@ -1,4 +1,4 @@
-<<p align='center'>
+<p align='center'>
 <img src="./res/lirlogobg.png" alt="LIR" width=30%/>  
 </p>
 
@@ -10,6 +10,8 @@ USV LIR 2.0 - Path Planning for Maritime Search and Rescue applications
   <img alt="GitHub forks" src="https://img.shields.io/github/forks/DominikWawak/USV-LIR-MotionPlanning-Vision?style=for-the-badge">
   <img alt="GitHub watchers" src="https://img.shields.io/github/watchers/DominikWawak/USV-LIR-MotionPlanning-Vision?style=for-the-badge">
   <br>
+
+
   <p align='center'>Real Search and rescue version</p>
   <p align='center'>
   <a href="https://universe.roboflow.com/usvsetu/usv_lir_search_and_rescue">
@@ -31,9 +33,11 @@ USV LIR 2.0 - Path Planning for Maritime Search and Rescue applications
 </p>
 <br>
 <p align='center'>
-<img src="./res/toGivTest.gif" width=30%> | <img src="./res/personInwaterGIF.gif" width=30%>
+<img src="./res/toGivTest.gif" width=40%> | <img src="./res/personInwaterGIF.gif" width=40%>
 
 </p>
+
+
 # Project Overview
 
 
@@ -47,6 +51,7 @@ USV LIR 2.0 - Path Planning for Maritime Search and Rescue applications
 
 
 # Technologies 
+
  Python, tensorflow, Pixhawk, Microbit, MQTT, AWS, Roboflow, OpenCV, QGroundControl, RoboFlow, YoloV5 and more...
 
 <br>
@@ -107,6 +112,7 @@ pip install -r requirements.txt
 If you are running one of my files and you get a "module not found error" the usual fix would be to install the module with the pip install command.
 
 <br>
+
 ## Metrics of Models
 
 Two methds of training were used one with YOLOv5 and one with RoboFlow. Roboglow was able to handle a lot more images and a lot more epochs my machine was only trained on 300 images approx. and 70 iteratrions.
