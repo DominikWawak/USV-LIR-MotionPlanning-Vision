@@ -102,8 +102,8 @@ Motion Planning
 
 ## Requirements
 
-The project is developed using Python 3.9.13 and it was made on a mac, i believe it should work on a windows machine, but i have not tested it. 
-TO install the same libraries I used please run the command below in your terminal after you cloned the repo.
+The project is developed using Python 3.9.13 and it was made on a mac, I believe it should work on a windows machine, but i have not tested it. My machine is 2020 M1 MacBook Pro.
+To install the same libraries I used please run the command below in your terminal after you cloned the repo.
 
 ```
 pip install -r requirements.txt
@@ -124,6 +124,12 @@ RoboFlow    - mAP 93.8% | precision 94.0% | recall 91.3%
 YoloV5      - mAP 71.8% | precision 86.8% | recall 86.8%
 ```
 
+<br>
+
+## Youtube Tutorials and videos
+
+
+[![Path Planning video](https://img.youtube.com/vi/dWNm99I6LBw/0.jpg)](https://www.youtube.com/watch?v=dWNm99I6LBw)
 
 
 
