@@ -1,0 +1,14 @@
+[submodule "Tensorflow/models"] 
+  path = Tensorflow/models
+  url = https://github.com/tensorflow/models.git
+
+
+
+[submodule "YOLO_PaperModel/yolov5"] 
+  path = YOLO_PaperModel/yolov5
+  url = https://github.com/ultralytics/yolov5
+
+
+[submodule "YOLO_RealModel/yolov5"] 
+  path = YOLO_RealModel/yolov5
+  url = https://github.com/ultralytics/yolov5
