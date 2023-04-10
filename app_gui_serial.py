@@ -33,6 +33,9 @@ ignore_water = False
 local_model=False
 
 
+#****************************************************************************************************
+#************* Connect with Pixhawk *****************************************************************
+
 
 def getCompassFromBoat():
    
@@ -58,6 +61,14 @@ time.sleep(5)
 
 print("compass thread started")
 
+
+#****************************************************************************************************
+#************* Connect with Pixhawk *****************************************************************
+
+
+#****************************************************************************************************
+#************* Motion Planning thread ***************************************************************
+
 def motion_recognitionThread(option,mode):
     global local_model
     # key,projectName,version
@@ -66,6 +77,8 @@ def motion_recognitionThread(option,mode):
     # model = project.version(version).model
 
     
+
+    # ****************** Add models to project ******************
 
     print(mode)
     
@@ -99,6 +112,7 @@ def motion_recognitionThread(option,mode):
         print(classes)
 
 
+    # ****************** Video Sources  ******************
     if(option==1):
         video = cv2.VideoCapture(0)
     elif(option==2):
@@ -114,8 +128,11 @@ def motion_recognitionThread(option,mode):
             #http://192.168.45.159:6868/screen_stream.mjpeg
         # best = video.getbest(preftype="mp4")
         # video = cv2.VideoCapture(best.url)
+
+
         # TEST VIDEO FOR PERSON https://www.youtube.com/watch?v=5n7ZNLvegBo
         # TEST VIDEO KAYAK https://www.youtube.com/watch?v=KLmXxadpTtQ
+
 
     width=0
     height=0
@@ -124,6 +141,9 @@ def motion_recognitionThread(option,mode):
     usv_width_pixels=0
     pixels_per_cm=0
 
+
+
+    #************************* Create Point Grid ********************************
     # video = cv2.VideoCapture(0)
     if video.isOpened(): 
     
@@ -152,13 +172,7 @@ def motion_recognitionThread(option,mode):
     
 
 
-
-
-    # 
-    # Loop
-    # 
-
-
+  
     # Create the person simulated image
     # load the overlay image. size should be smaller than video frame size
     imgPerson = cv2.imread('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/res/pp1.png', cv2.IMREAD_UNCHANGED)
@@ -176,7 +190,11 @@ def motion_recognitionThread(option,mode):
     deltaXUSV=50
     deltaYUSV=50
 
-  
+    # 
+    # Loop
+    # 
+
+
 
     while True:
         
@@ -202,6 +220,8 @@ def motion_recognitionThread(option,mode):
         startPoint=()
         endPoint=()
 
+
+        #*************************************************Simulation Mode Images draw on screen ***************************************************
 
         if simultaion_mode: 
             # add image to frame
@@ -253,6 +273,8 @@ def motion_recognitionThread(option,mode):
         #****************************************************************************************************
         #*************OBJECT RECOGNITION _ START************************************************************************
 
+
+        #***************************************** LOCAL ***********************************************************
 
         if start_path_planning:
 
@@ -320,10 +342,8 @@ def motion_recognitionThread(option,mode):
                                 path_finished=True
 
 
-
-
-
             else:
+                #***************************************** CLOUD ROBOFLOW ***********************************************************
 
                 prediction=model.predict(img, confidence=40, overlap=30).json()
 
@@ -359,26 +379,14 @@ def motion_recognitionThread(option,mode):
 
                     if(bounding_box):
                         if(bounding_box['class']=="usv" or bounding_box['class']=="2" or bounding_box['class']=="4"  ):
-                            # for cnt in big_countours:
-                            #     if( cv2.pointPolygonTest(cnt,(bounding_box['x'],bounding_box['y']),False)==1):
-                            #         usv_contour=cnt
-                            #         break
-                            # x,y,w,h = cv2.boundingRect(usv_contour)
-                            
-                            # startPoint=(int(x+w/2),int(y+h/2))
+                         
                                 
                             startPoint=(int(x0+bounding_box['width']/2), int(y0+bounding_box['height'] / 2))
                             cv2.circle(img2, startPoint, 10, (0,255,0), -1)
                             
                                 
                         if(bounding_box['class']=="person" or bounding_box['class']=="0"):
-                            # for cnt in big_countours:
-                            #     if( cv2.pointPolygonTest(cnt,(bounding_box['x'],bounding_box['y']),False)==1):
-                            #         person_contour=cnt
-                            #         break
-
-                            # x,y,w,h = cv2.boundingRect(person_contour)  
-                            # endPoint=(int(x+w/2),int(y+h/2))
+                         
                             endPoint=(int(x0+bounding_box['width']/2), int(y0+bounding_box['height'] / 2))
                             cv2.circle(img2, endPoint, 10, (0,255,0), -1)
 
@@ -398,6 +406,8 @@ def motion_recognitionThread(option,mode):
 
 
 
+            #****************************************************************************************************
+            #************* Path Planning ************************************************************************
 
 
     
@@ -456,8 +466,6 @@ def motion_recognitionThread(option,mode):
                         print("start_nearest",start_nearest,"end_nearest",end_nearest,"startPoint",startPoint,"endPoint",endPoint)
 
 
-                        # Add edges between nodes outside and the box 
-
                         for circ in valid_circles:
                             distance_toStart = sqrt((startPoint[0] - circ[0])**2 + (startPoint[1] - circ[1])**2)
                             distance_to_end = sqrt((endPoint[0] - circ[0])**2 + (endPoint[1] - circ[1])**2)
@@ -470,17 +478,6 @@ def motion_recognitionThread(option,mode):
                                 cv2.circle(img, circ, 10, (0,255,0), -1)
                         
 
-
-
-
-                        
-
-                        # G.add_edge(startPoint, start_nearest, weight=sqrt((start_point[0] - start_nearest[0])**2 + (start_point[1] - start_nearest[1])**2))
-
-                        # end_nearest = min(valid_circles, key=lambda x: sqrt((end_point[0] - x[0])**2 + (end_point[1] - x[1])**2))
-                        # G.add_edge(endPoint, end_nearest, weight=sqrt((end_point[0] - end_nearest[0])**2 + (end_point[1] - end_nearest[1])**2))
-                
-                
                         try:
                             
                             shortest_path = nx.dijkstra_path(G, startPoint, endPoint, weight='weight')
@@ -499,20 +496,7 @@ def motion_recognitionThread(option,mode):
                                     cv2.line(img2, (shortest_path[i]), (shortest_path[i+1]), (0, 255, 0), thickness=3, lineType=8)
                                     cv2.line(img, (shortest_path[i]), (shortest_path[i+1]), (0, 255, 0), thickness=3, lineType=8)
                                     distances.append(sqrt((shortest_path[i][0]-shortest_path[i+1][0])**2 + (shortest_path[i][1]-shortest_path[i+1][1])**2))
-                                    # # Directions
-                                    # if(shortest_path[i][0]<shortest_path[i+1][0] and shortest_path[i][1]<shortest_path[i+1][1]):
-                                    #     print("Diagonal Down Right")
-                                    #     directions.append("Diagonal Down Right")
-                                    # elif(shortest_path[i][0]<shortest_path[i+1][0] and shortest_path[i][1]>shortest_path[i+1][1]):
-                                    #     print("Diagonal Up Right")
-                                    #     distances
-                                    #     directions.append("Diagonal Up Right")
-                                    # elif(shortest_path[i][0]>shortest_path[i+1][0] and shortest_path[i][1]<shortest_path[i+1][1]):
-                                    #     print("Diagonal Down Left")
-                                    #     directions.append("Diagonal Down Left")
-                                    # elif(shortest_path[i][0]>shortest_path[i+1][0] and shortest_path[i][1]>shortest_path[i+1][1]):
-                                    #     print("Diagonal Up Left")
-                                    #     directions.append("Diagonal Up Left")
+                                  
                                     if(shortest_path[i][0]<shortest_path[i+1][0] and shortest_path[i][1]==shortest_path[i+1][1]):
                                         print("Right")
                                         directions.append(90)
@@ -583,7 +567,11 @@ def motion_recognitionThread(option,mode):
     
         cv2.waitKey(1)
 
+         #****************************************************************************************************
+         #************* Path Planning ************************************************************************
 
+#****************************************************************************************************
+#************* Motion Planning thread ***************************************************************
 
 class App:
 
@@ -762,7 +750,6 @@ class App:
 
         
 
-   
 
     def show_frame(self,img1,img2,img3):
         frame = img1

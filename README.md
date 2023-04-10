@@ -129,7 +129,13 @@ YoloV5      - mAP 71.8% | precision 86.8% | recall 86.8%
 ## Youtube Tutorials and videos
 
 
-[![Path Planning video](https://img.youtube.com/vi/dWNm99I6LBw/0.jpg)](https://www.youtube.com/watch?v=dWNm99I6LBw)
+<!-- [![Path Planning video](https://img.youtube.com/vi/dWNm99I6LBw/0.jpg)](https://www.youtube.com/watch?v=dWNm99I6LBw) -->
+
+| Video 1 | Video 2 |
+|---------|---------|
+| [![Video 1](https://img.youtube.com/vi/N3iyU3Nb1yY/0.jpg)](https://www.youtube.com/watch?v=N3iyU3Nb1yY) | [![Video 2](https://img.youtube.com/vi/dGr95VA1BJU/0.jpg)](https://www.youtube.com/watch?v=dGr95VA1BJU) |
+| Video 3 | Video 4 |
+| [![Video 3](https://img.youtube.com/vi/dWNm99I6LBw/0.jpg)](https://www.youtube.com/watch?v=dWNm99I6LBw) | [![Video 4](https://img.youtube.com/vi/r_iRB560rAo/0.jpg)](https://www.youtube.com/watch?v=r_iRB560rAo) |
 
 
 
