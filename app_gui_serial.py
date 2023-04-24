@@ -22,6 +22,7 @@ ser = serial.Serial('/dev/tty.usbmodem1302', 115200)
 
 
 
+
 ack_msg=""
 boat_ready_msg=""
 path_finished=False
@@ -32,13 +33,18 @@ start_path_planning = False
 ignore_water = False
 local_model=False
 
+value_DIRECTION = 0
+value_GPS=0
+
+val_Direction = None
+val_gps=None
 
 #****************************************************************************************************
 #************* Connect with Pixhawk *****************************************************************
 
 
 def getCompassFromBoat():
-   
+    global value_GPS
         # Start a connection listening on a UDP port
     the_connection = mavutil.mavlink_connection('udpin:localhost:14445')
 
@@ -51,6 +57,9 @@ def getCompassFromBoat():
         msg = the_connection.recv_match(type='GLOBAL_POSITION_INT', blocking=True)
         #Print the compass value
         #print("Global Position: %s" % int(msg.hdg/100))
+        value_GPS=str(int(msg.hdg/100))
+        if(val_gps!=None):
+            val_gps.set(value_GPS)
         ser.write(b'$GPS:' + str(int(msg.hdg/100)).encode() + b',')
         
 
@@ -226,7 +235,7 @@ def motion_recognitionThread(option,mode):
         if simultaion_mode: 
             # add image to frame
             #img[ yp:yp+imgPerson_height, xp:xp+imgPerson_width]=imgPerson
-            img = cvzone.overlayPNG(img, imgPerson, [xp,yp])
+            img = cvzone.overlayPNG(img, imgPerson, [int((video.get(3))/2),yp])
             if usv_simulation:
                 img = cvzone.overlayPNG(img, imgUSV, [(width-deltaXUSV)-imgUSV_width,(height-deltaYUSV)-imgUSV_height])
            
@@ -525,6 +534,8 @@ def motion_recognitionThread(option,mode):
                                 else:
                                     print("sending driection",directions[0])
                                     ser.write(b'$Direction:'+str(directions[0]).encode()+b',')
+                                    if(val_Direction!=None):
+                                        val_Direction.set(str(directions[0]))
                                    
 
                                     if simultaion_mode and usv_simulation:
@@ -644,6 +655,7 @@ class App:
         
 
     def __init__(self, master):
+        global val_gps, val_Direction
 
         self.LH=0
         self.LS=0
@@ -667,6 +679,9 @@ class App:
 
         mainVideoWindow = Frame(master)
         mainVideoWindow.pack(side='left')
+
+        loggingFrame= Frame(master)
+        loggingFrame.pack(side='bottom')
 
         # sideWindow = Frame(master)
         # sideWindow.pack(pady=10)
@@ -746,6 +761,24 @@ class App:
         self.label4 = Label(mainVideoWindow)
         self.label4.pack()
 
+        # logging frame 2 value text booxes bottom of screen
+
+        val_gps = StringVar()
+        val_gps.set(value_GPS)
+
+        val_Direction = StringVar()
+        
+
+
+        self.label5 = Label(loggingFrame, textvariable=val_gps)
+        self.label5.pack(side=LEFT)
+        
+        self.label6 = Label(loggingFrame, textvariable=val_Direction)
+        self.label6.pack(side=LEFT)
+
+
+
+
         
 
         
@@ -806,8 +839,6 @@ class App:
     def exit_program(self):
         
         self.master.destroy()
-
-
 
 
 root = Tk()
