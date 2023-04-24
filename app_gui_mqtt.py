@@ -19,17 +19,18 @@ import time
 import json
 
 
-
 ack_msg=""
 boat_ready_msg=""
 path_finished=False
 boat_heading=""
-simultaion_mode=False
-usv_simulation = False
+simultaion_mode= True
+usv_simulation = True
 start_path_planning = False
 ignore_water = False
 local_model=False
-
+frame_img_width=0
+frame_img_height=0
+prev_direction="north"
 
 
 
@@ -108,7 +109,7 @@ time.sleep(5)
 print("compass thread started")
 
 def motion_recognitionThread(option,mode):
-    global local_model
+    global local_model,prev_direction
     # key,projectName,version
     # rf = Roboflow(key)
     # project = rf.workspace().project(projectName)
@@ -166,8 +167,7 @@ def motion_recognitionThread(option,mode):
         # TEST VIDEO FOR PERSON https://www.youtube.com/watch?v=5n7ZNLvegBo
         # TEST VIDEO KAYAK https://www.youtube.com/watch?v=KLmXxadpTtQ
 
-    width=0
-    height=0
+    
 
     usv_width_cm=8 #cm
     usv_width_pixels=0
@@ -177,13 +177,13 @@ def motion_recognitionThread(option,mode):
     if video.isOpened(): 
     
         
-        width  = int(video.get(3))  # float `width`
-        height = int(video.get(4))  # float `height`
+        frame_img_width  = int(video.get(3))  # float `width`
+        frame_img_height = int(video.get(4))  # float `height`
 
         pointGrid=[]
 
-        for i in range(0,width,50):
-            for j in range(0,height,50):
+        for i in range(0,frame_img_width,50):
+            for j in range(0,frame_img_height,50):
                 pointGrid.append([i,j])
        
 
@@ -212,16 +212,17 @@ def motion_recognitionThread(option,mode):
     # load the overlay image. size should be smaller than video frame size
     imgPerson = cv2.imread('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/res/pp1.png', cv2.IMREAD_UNCHANGED)
     #imgPerson = cv2.resize(imgPerson,(50,50))
-    imgUSV = cv2.imread('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/res/usv.png', cv2.IMREAD_UNCHANGED)
-    imgUSV = cv2.resize(imgUSV,(250,450))
+    imgUSV = cv2.imread('/Users/dominikwawak/Documents/FinalYear/Project/motionplanningStuff/USV-LIR-MotionPlanning-Vision/res/usvreal.png', cv2.IMREAD_UNCHANGED)
+    imgUSV = cv2.resize(imgUSV,(150,220))
+    # imgUSV = cv2.resize(imgUSV,(250,360))
 
     # Get Image dimensions
     imgPerson_height, imgPerson_width, _ = imgPerson.shape
     imgUSV_height, imgUSV_width, _ = imgUSV.shape
 
     # Set initial position of images and used for change 
-    xp=50
-    yp=50
+    xp=100
+    yp=100
     deltaXUSV=50
     deltaYUSV=50
 
@@ -257,7 +258,9 @@ def motion_recognitionThread(option,mode):
             #img[ yp:yp+imgPerson_height, xp:xp+imgPerson_width]=imgPerson
             img = cvzone.overlayPNG(img, imgPerson, [xp,yp])
             if usv_simulation:
-                img = cvzone.overlayPNG(img, imgUSV, [(width-deltaXUSV)-imgUSV_width,(height-deltaYUSV)-imgUSV_height])
+                #print("USV SIMULATION",frame_img_width,deltaXUSV)
+               
+                img = cvzone.overlayPNG(img, imgUSV, [(frame_img_width-deltaXUSV)-imgUSV.shape[1],(frame_img_height-deltaYUSV)-imgUSV.shape[0]])
            
         
         
@@ -353,11 +356,11 @@ def motion_recognitionThread(option,mode):
                     cv2.rectangle(img,(x,y),(x+width,y+height),(0,255,0),2)
                     cv2.putText(img,text,(x,y-10),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,255,0),2)
 
-                    if label=="person":
+                    if label=="person" or label=="0":
                         endPoint=(int(x+width/2),int(y+height/2))
                         cv2.circle(img2, endPoint, 10, (0,255,0), -1)
 
-                    if label=="usv":
+                    if label=="usv" or label=="6":
                         startPoint=(int(x+width/2),int(y+height/2))
                         cv2.circle(img2, startPoint, 10, (0,255,0), -1)
 
@@ -452,7 +455,7 @@ def motion_recognitionThread(option,mode):
     
             # boat_ready_msg!="")
             if(startPoint!=() and endPoint!=() and not path_finished) : # if both points are found -> crate the graph
-
+                print("startPoint Planning")
                 if(abs(startPoint[0]-startPoint_prev[0])<=101 and abs(endPoint[0]-endPoint_prev[0])<=101):
                     validPointCount+=1
                     print("validPointCount",validPointCount)
@@ -584,7 +587,7 @@ def motion_recognitionThread(option,mode):
                             print("Directions",directions)
 
                             if(len(directions)>0):
-                                if(len(directions)==1):
+                                if(len(directions)==2):
                                     print("sending STOP")
                                     client.publish("test/res", "stop1")
                                 else:
@@ -592,6 +595,7 @@ def motion_recognitionThread(option,mode):
                                     client.publish("test/res", directions[0])
 
                                     if simultaion_mode and usv_simulation:
+                                        
                                         if(directions[0]=="north"):
                                             #move boat image up 50 pixels in the image and rotate image
                                             deltaYUSV=deltaYUSV+50
@@ -602,14 +606,55 @@ def motion_recognitionThread(option,mode):
                                         elif(directions[0]=="east"):
                                             #imgUSV= cv2.rotate(imgUSV, cv2.ROTATE_90_CLOCKWISE)
                                             deltaXUSV=deltaXUSV-50
-                                            imgUSV_height, imgUSV_width, _ = imgUSV.shape
+                                            #imgUSV_height, imgUSV_width, _ = imgUSV.shape
                                         elif(directions[0]=="west"):
                                             #imgUSV= cv2.rotate(imgUSV, cv2.ROTATE_90_COUNTERCLOCKWISE)
                                             deltaXUSV=deltaXUSV+50
-                                            #imgUSV_height, imgUSV_width, _ = imgUSV.shape
+                                            # imgUSV_height, imgUSV_width, _ = imgUSV.shape
 
-                                        else:
-                                            print("No Direction")
+                                        
+                                        if prev_direction!=directions[0]:
+                                            if directions[0]=="north":
+                                                if prev_direction=="east":
+                                                    imgUSV= cv2.rotate(imgUSV, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                                                elif prev_direction=="west":
+                                                    imgUSV= cv2.rotate(imgUSV, cv2.ROTATE_90_CLOCKWISE)
+                                                elif prev_direction=="south":
+                                                    imgUSV = cv2.rotate(imgUSV, cv2.ROTATE_180)
+                                            elif directions[0]=="south":
+                                                if prev_direction=="east":
+                                                    imgUSV= cv2.rotate(imgUSV, cv2.ROTATE_90_CLOCKWISE)
+                                                elif prev_direction=="west":
+                                                    imgUSV= cv2.rotate(imgUSV, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                                                elif prev_direction=="north":
+                                                    imgUSV = cv2.rotate(imgUSV, cv2.ROTATE_180)
+                                            elif directions[0]=="east":
+                                                if prev_direction=="north":
+                                                    imgUSV= cv2.rotate(imgUSV, cv2.ROTATE_90_CLOCKWISE)
+                                                elif prev_direction=="south":
+                                                    imgUSV= cv2.rotate(imgUSV, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                                                elif prev_direction=="west":
+                                                    imgUSV = cv2.rotate(imgUSV, cv2.ROTATE_180)
+                                            elif directions[0]=="west":
+                                                if prev_direction=="north":
+                                                    imgUSV= cv2.rotate(imgUSV, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                                                
+                                                elif prev_direction=="south":
+                                                    imgUSV= cv2.rotate(imgUSV, cv2.ROTATE_90_CLOCKWISE)
+                                                
+                                                elif prev_direction=="east":
+                                                    imgUSV = cv2.rotate(imgUSV, cv2.ROTATE_180)
+                                                    
+                                            else:
+                                                print("No Change rotation")
+                                            
+                                        print(prev_direction,directions[0])
+                                        print("Before",imgUSV_width,imgUSV_height)
+                                        prev_direction=directions[0]
+                                        imgUSV_height, imgUSV_width, _ = imgUSV.shape
+                                        print("After",imgUSV_width,imgUSV_height)
+
+
 
                                 
                         
